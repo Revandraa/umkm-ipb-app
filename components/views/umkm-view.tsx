@@ -41,10 +41,12 @@ import {
   Search,
   Store,
   AlertCircle,
-  WifiOff
+  WifiOff,
+  Bell
 } from "lucide-react"
-import { mockUMKMs, formatPrice } from "@/lib/mock-data"
+import { formatPrice } from "@/lib/mock-data"
 import type { MenuItem } from "@/lib/mock-data"
+import { useData } from "@/lib/data-context"
 import { toast } from "sonner"
 
 interface FormErrors {
@@ -55,9 +57,10 @@ interface FormErrors {
 }
 
 export function UMKMView() {
+  const { approvedUMKMs, orders, updateMenuItem, deleteMenuItem } = useData()
+  
   // Simulate logged in UMKM - using first approved UMKM
-  const currentUMKM = mockUMKMs[0]
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(currentUMKM.menu)
+  const currentUMKM = approvedUMKMs[0]
   const [searchQuery, setSearchQuery] = useState("")
   
   // Edit Modal State
@@ -77,18 +80,31 @@ export function UMKMView() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingItem, setDeletingItem] = useState<MenuItem | null>(null)
 
+  if (!currentUMKM) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Store className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-foreground mb-2">Tidak ada UMKM</h2>
+          <p className="text-muted-foreground">Belum ada UMKM yang terverifikasi</p>
+        </div>
+      </div>
+    )
+  }
+
+  const menuItems = currentUMKM.menu
   const filteredItems = menuItems.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  // Get orders for this UMKM
+  const umkmOrders = orders.filter(order => order.menuItem.vendorId === currentUMKM.id)
+  const newOrdersCount = umkmOrders.filter(o => o.status === "confirmed").length
+
   const toggleAvailability = (itemId: string) => {
-    setMenuItems(items =>
-      items.map(item =>
-        item.id === itemId ? { ...item, isAvailable: !item.isAvailable } : item
-      )
-    )
     const item = menuItems.find(m => m.id === itemId)
     if (item) {
+      updateMenuItem(currentUMKM.id, itemId, { isAvailable: !item.isAvailable })
       toast.success(`Status menu "${item.name}" berhasil diubah`)
     }
   }
@@ -158,19 +174,12 @@ export function UMKMView() {
 
     // Update the menu item
     if (editingItem) {
-      setMenuItems(items =>
-        items.map(item =>
-          item.id === editingItem.id
-            ? {
-                ...item,
-                name: formData.name.trim(),
-                price: Number(formData.price),
-                stock: Number(formData.stock),
-                description: formData.description.trim(),
-              }
-            : item
-        )
-      )
+      updateMenuItem(currentUMKM.id, editingItem.id, {
+        name: formData.name.trim(),
+        price: Number(formData.price),
+        stock: Number(formData.stock),
+        description: formData.description.trim(),
+      })
     }
 
     setIsSubmitting(false)
@@ -188,7 +197,7 @@ export function UMKMView() {
 
   const handleDelete = () => {
     if (deletingItem) {
-      setMenuItems(items => items.filter(item => item.id !== deletingItem.id))
+      deleteMenuItem(currentUMKM.id, deletingItem.id)
       toast.success(`Menu "${deletingItem.name}" berhasil dihapus`)
       setDeleteDialogOpen(false)
       setDeletingItem(null)
@@ -210,9 +219,17 @@ export function UMKMView() {
                 <p className="text-muted-foreground">{currentUMKM.location}</p>
               </div>
             </div>
-            <Badge variant="secondary" className="w-fit">
-              UMKM Terverifikasi
-            </Badge>
+            <div className="flex items-center gap-3">
+              {newOrdersCount > 0 && (
+                <Badge className="bg-success/10 text-success border-success/30 gap-1">
+                  <Bell className="h-3 w-3" />
+                  {newOrdersCount} Pesanan Baru
+                </Badge>
+              )}
+              <Badge variant="secondary" className="w-fit">
+                UMKM Terverifikasi
+              </Badge>
+            </div>
           </div>
         </div>
       </div>
@@ -266,13 +283,35 @@ export function UMKMView() {
                   <DollarSign className="h-5 w-5 text-warning" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Pendapatan Hari Ini</p>
-                  <p className="text-2xl font-bold text-foreground">{formatPrice(450000)}</p>
+                  <p className="text-sm text-muted-foreground">Pesanan Hari Ini</p>
+                  <p className="text-2xl font-bold text-foreground">{umkmOrders.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Recent Orders Notification */}
+        {newOrdersCount > 0 && (
+          <Card className="mb-8 border-success/30 bg-success/5">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-full bg-success/20 flex items-center justify-center">
+                  <Bell className="h-6 w-6 text-success" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-foreground">Pesanan Baru!</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Anda memiliki {newOrdersCount} pesanan baru yang perlu diproses
+                  </p>
+                </div>
+                <Button variant="outline" className="border-success/30 text-success hover:bg-success/10">
+                  Lihat Pesanan
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Menu Management Section */}
         <Card id="kelola">
@@ -544,8 +583,10 @@ export function UMKMView() {
             <Button 
               variant="destructive"
               onClick={handleDelete}
+              className="gap-2"
             >
-              Hapus
+              <Trash2 className="h-4 w-4" />
+              Ya, Hapus
             </Button>
           </DialogFooter>
         </DialogContent>

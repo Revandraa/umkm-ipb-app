@@ -1,6 +1,7 @@
 "use client"
 
 import { RoleProvider, useRole } from "@/lib/role-context"
+import { DataProvider } from "@/lib/data-context"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { MahasiswaView } from "@/components/views/mahasiswa-view"
@@ -25,8 +26,10 @@ function MainContent() {
 
 export default function Page() {
   return (
-    <RoleProvider>
-      <MainContent />
-    </RoleProvider>
+    <DataProvider>
+      <RoleProvider>
+        <MainContent />
+      </RoleProvider>
+    </DataProvider>
   )
 }

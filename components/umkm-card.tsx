@@ -9,14 +9,22 @@ import type { UMKM } from "@/lib/mock-data"
 interface UMKMCardProps {
   umkm: UMKM
   onClick?: () => void
+  isSelected?: boolean
 }
 
-export function UMKMCard({ umkm, onClick }: UMKMCardProps) {
+export function UMKMCard({ umkm, onClick, isSelected }: UMKMCardProps) {
   const menuCount = umkm.menu.length
   const availableMenuCount = umkm.menu.filter((m) => m.isAvailable).length
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-border hover:border-primary/30" onClick={onClick}>
+    <Card 
+      className={`group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 ${
+        isSelected 
+          ? "border-primary shadow-md bg-primary/5" 
+          : "border-border hover:border-primary/30"
+      }`} 
+      onClick={onClick}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1">

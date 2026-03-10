@@ -40,18 +40,17 @@ import {
   AlertTriangle,
   Search,
   MapPin,
-  AlertCircle,
   Calendar,
   User,
   FileText
 } from "lucide-react"
-import { mockUMKMs, pendingUMKMs, formatPrice } from "@/lib/mock-data"
+import { formatPrice } from "@/lib/mock-data"
 import type { UMKM } from "@/lib/mock-data"
+import { useData } from "@/lib/data-context"
 import { toast } from "sonner"
 
 export function AdminView() {
-  const [pending, setPending] = useState<UMKM[]>(pendingUMKMs)
-  const [approved, setApproved] = useState<UMKM[]>(mockUMKMs.filter(u => u.isApproved))
+  const { approvedUMKMs, pendingUMKMs, approveUMKM, rejectUMKM } = useData()
   const [selectedUMKM, setSelectedUMKM] = useState<UMKM | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   
@@ -66,8 +65,8 @@ export function AdminView() {
   const [approveDialogOpen, setApproveDialogOpen] = useState(false)
   const [approvingUMKM, setApprovingUMKM] = useState<UMKM | null>(null)
 
-  const approvedCount = approved.length
-  const pendingCount = pending.length
+  const approvedCount = approvedUMKMs.length
+  const pendingCount = pendingUMKMs.length
 
   const openApproveDialog = (umkm: UMKM) => {
     setApprovingUMKM(umkm)
@@ -82,16 +81,7 @@ export function AdminView() {
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 1000))
 
-    // Move from pending to approved
-    const approvedUMKM: UMKM = {
-      ...approvingUMKM,
-      isApproved: true,
-      isPending: false,
-      rating: 0,
-    }
-    
-    setPending(items => items.filter(item => item.id !== approvingUMKM.id))
-    setApproved(items => [...items, approvedUMKM])
+    approveUMKM(approvingUMKM.id)
     
     setIsProcessing(false)
     setApproveDialogOpen(false)
@@ -99,7 +89,7 @@ export function AdminView() {
     setApprovingUMKM(null)
 
     toast.success("UMKM Berhasil Disetujui!", {
-      description: `"${approvedUMKM.name}" sekarang berstatus Aktif dan dapat mulai berjualan.`,
+      description: `"${approvingUMKM.name}" sekarang berstatus Aktif dan dapat mulai berjualan.`,
     })
   }
 
@@ -133,7 +123,7 @@ export function AdminView() {
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 1000))
 
-    setPending(items => items.filter(item => item.id !== rejectingUMKM.id))
+    rejectUMKM(rejectingUMKM.id)
     
     setIsProcessing(false)
     setRejectDialogOpen(false)
@@ -146,7 +136,7 @@ export function AdminView() {
     })
   }
 
-  const filteredPending = pending.filter(umkm =>
+  const filteredPending = pendingUMKMs.filter(umkm =>
     umkm.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     umkm.owner.toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -357,7 +347,7 @@ export function AdminView() {
               <CheckCircle2 className="h-5 w-5 text-success" />
               UMKM Terverifikasi
             </CardTitle>
-            <CardDescription>Daftar UMKM yang sudah disetujui</CardDescription>
+            <CardDescription>Daftar UMKM yang sudah disetujui dan aktif</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-lg border border-border overflow-hidden">
@@ -372,7 +362,7 @@ export function AdminView() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {approved.map((umkm) => (
+                  {approvedUMKMs.map((umkm) => (
                     <TableRow key={umkm.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -488,15 +478,18 @@ export function AdminView() {
                   {selectedUMKM.menu.map((item) => (
                     <div key={item.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded bg-muted flex items-center justify-center">
-                          <span className="text-sm">🍽️</span>
+                        <div className="h-10 w-10 rounded-lg bg-card flex items-center justify-center">
+                          <span className="text-lg">🍽️</span>
                         </div>
                         <div>
                           <p className="font-medium text-foreground text-sm">{item.name}</p>
                           <p className="text-xs text-muted-foreground">{item.category}</p>
                         </div>
                       </div>
-                      <p className="font-medium text-primary text-sm">{formatPrice(item.price)}</p>
+                      <div className="text-right">
+                        <p className="font-semibold text-primary">{formatPrice(item.price)}</p>
+                        <p className="text-xs text-muted-foreground">Stok: {item.stock}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -504,28 +497,30 @@ export function AdminView() {
             </div>
           )}
 
-          <DialogFooter className="gap-2 sm:gap-0 mt-6">
-            <Button variant="outline" onClick={() => setSelectedUMKM(null)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setSelectedUMKM(null)}
+              className="w-full sm:w-auto"
+            >
               Tutup
             </Button>
             <Button
               variant="destructive"
+              className="w-full sm:w-auto gap-1"
               onClick={() => {
                 if (selectedUMKM) {
-                  setSelectedUMKM(null)
                   openRejectDialog(selectedUMKM)
                 }
               }}
-              className="gap-2"
             >
               <XCircle className="h-4 w-4" />
               Tolak
             </Button>
             <Button
-              className="bg-success hover:bg-success/90 text-success-foreground gap-2"
+              className="w-full sm:w-auto gap-1 bg-success hover:bg-success/90 text-success-foreground"
               onClick={() => {
                 if (selectedUMKM) {
-                  setSelectedUMKM(null)
                   openApproveDialog(selectedUMKM)
                 }
               }}
@@ -537,40 +532,43 @@ export function AdminView() {
         </DialogContent>
       </Dialog>
 
-      {/* Approval Confirmation Dialog */}
+      {/* Approve Confirmation Dialog */}
       <Dialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-success">
-              <CheckCircle2 className="h-5 w-5" />
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-success" />
               Konfirmasi Persetujuan
             </DialogTitle>
             <DialogDescription>
-              Apakah Anda yakin ingin menyetujui pendaftaran UMKM <strong>{approvingUMKM?.name}</strong>?
+              Anda akan menyetujui pendaftaran UMKM berikut
             </DialogDescription>
           </DialogHeader>
-
+          
           {approvingUMKM && (
-            <div className="bg-success/5 border border-success/20 rounded-lg p-4">
-              <p className="text-sm text-muted-foreground mb-2">Setelah disetujui:</p>
-              <ul className="text-sm space-y-1">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-success" />
-                  Status akun menjadi <Badge className="bg-success/10 text-success border-success/30 ml-1">Aktif</Badge>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-success" />
-                  UMKM dapat mulai menjual produk
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-success" />
-                  Notifikasi akan dikirim ke pemilik
-                </li>
-              </ul>
+            <div className="space-y-4">
+              <div className="bg-muted/30 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Store className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">{approvingUMKM.name}</p>
+                    <p className="text-sm text-muted-foreground">Pemilik: {approvingUMKM.owner}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 p-3 bg-success/10 rounded-lg border border-success/30">
+                <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
+                <p className="text-sm text-foreground">
+                  Status akan berubah menjadi <span className="font-semibold text-success">Aktif</span> dan menu akan ditampilkan ke mahasiswa
+                </p>
+              </div>
             </div>
           )}
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter>
             <Button 
               variant="outline" 
               onClick={() => setApproveDialogOpen(false)}
@@ -578,69 +576,77 @@ export function AdminView() {
             >
               Batal
             </Button>
-            <Button
+            <Button 
               className="bg-success hover:bg-success/90 text-success-foreground gap-2"
               onClick={handleApprove}
               disabled={isProcessing}
             >
-              {isProcessing && <Spinner className="h-4 w-4" />}
-              {isProcessing ? "Memproses..." : "Ya, Setujui"}
+              {isProcessing ? (
+                <>
+                  <Spinner className="h-4 w-4" />
+                  Memproses...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  Ya, Setujui
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Rejection Dialog with Reason Input */}
+      {/* Reject Dialog */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <XCircle className="h-5 w-5" />
+            <DialogTitle className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-destructive" />
               Tolak Pendaftaran UMKM
             </DialogTitle>
             <DialogDescription>
-              Berikan alasan penolakan untuk <strong>{rejectingUMKM?.name}</strong>. Alasan ini akan dikirimkan ke pemilik UMKM.
+              Berikan alasan penolakan untuk UMKM ini
             </DialogDescription>
           </DialogHeader>
-
-          <FieldGroup>
-            <Field data-invalid={!!rejectionError}>
-              <FieldLabel htmlFor="rejection-reason">Alasan Penolakan</FieldLabel>
-              <Textarea
-                id="rejection-reason"
-                placeholder="Contoh: Dokumen persyaratan tidak lengkap, lokasi usaha tidak sesuai, dll."
-                value={rejectionReason}
-                onChange={(e) => {
-                  setRejectionReason(e.target.value)
-                  if (rejectionError) setRejectionError("")
-                }}
-                className={rejectionError ? "border-destructive" : ""}
-                rows={4}
-              />
-              {rejectionError && (
-                <FieldError>
-                  <span className="flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    {rejectionError}
-                  </span>
-                </FieldError>
-              )}
-            </Field>
-          </FieldGroup>
-
-          <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-destructive mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-destructive">Perhatian</p>
-                <p className="text-xs text-muted-foreground">
-                  Tindakan ini tidak dapat dibatalkan. UMKM perlu mendaftar ulang jika ingin mengajukan permohonan kembali.
-                </p>
+          
+          {rejectingUMKM && (
+            <div className="space-y-4">
+              <div className="bg-muted/30 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Store className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">{rejectingUMKM.name}</p>
+                    <p className="text-sm text-muted-foreground">Pemilik: {rejectingUMKM.owner}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+              <FieldGroup>
+                <Field>
+                  <FieldLabel>Alasan Penolakan <span className="text-destructive">*</span></FieldLabel>
+                  <Textarea
+                    placeholder="Contoh: Dokumen tidak lengkap, lokasi tidak sesuai, dll."
+                    value={rejectionReason}
+                    onChange={(e) => {
+                      setRejectionReason(e.target.value)
+                      if (rejectionError) setRejectionError("")
+                    }}
+                    className={rejectionError ? "border-destructive" : ""}
+                    rows={4}
+                  />
+                  {rejectionError && <FieldError>{rejectionError}</FieldError>}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Minimal 10 karakter. Alasan ini akan dikirimkan ke pemilik UMKM.
+                  </p>
+                </Field>
+              </FieldGroup>
+            </div>
+          )}
+
+          <DialogFooter>
             <Button 
               variant="outline" 
               onClick={() => setRejectDialogOpen(false)}
@@ -648,14 +654,23 @@ export function AdminView() {
             >
               Batal
             </Button>
-            <Button
+            <Button 
               variant="destructive"
               onClick={handleReject}
               disabled={isProcessing}
               className="gap-2"
             >
-              {isProcessing && <Spinner className="h-4 w-4" />}
-              {isProcessing ? "Memproses..." : "Tolak Pendaftaran"}
+              {isProcessing ? (
+                <>
+                  <Spinner className="h-4 w-4" />
+                  Memproses...
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-4 w-4" />
+                  Tolak Pendaftaran
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
