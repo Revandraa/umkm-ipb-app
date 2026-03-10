@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Table,
   TableBody,
@@ -14,6 +15,21 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Switch } from "@/components/ui/switch"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Field,
+  FieldLabel,
+  FieldError,
+  FieldGroup,
+} from "@/components/ui/field"
+import { Spinner } from "@/components/ui/spinner"
 import { 
   Plus, 
   Edit2, 
@@ -23,16 +39,43 @@ import {
   DollarSign, 
   ShoppingBag,
   Search,
-  Store
+  Store,
+  AlertCircle,
+  WifiOff
 } from "lucide-react"
 import { mockUMKMs, formatPrice } from "@/lib/mock-data"
 import type { MenuItem } from "@/lib/mock-data"
+import { toast } from "sonner"
+
+interface FormErrors {
+  name?: string
+  price?: string
+  stock?: string
+  description?: string
+}
 
 export function UMKMView() {
   // Simulate logged in UMKM - using first approved UMKM
   const currentUMKM = mockUMKMs[0]
   const [menuItems, setMenuItems] = useState<MenuItem[]>(currentUMKM.menu)
   const [searchQuery, setSearchQuery] = useState("")
+  
+  // Edit Modal State
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
+  const [formData, setFormData] = useState({
+    name: "",
+    price: "",
+    stock: "",
+    description: "",
+  })
+  const [formErrors, setFormErrors] = useState<FormErrors>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [simulateNetworkError, setSimulateNetworkError] = useState(false)
+
+  // Delete Confirmation State
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deletingItem, setDeletingItem] = useState<MenuItem | null>(null)
 
   const filteredItems = menuItems.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -44,10 +87,113 @@ export function UMKMView() {
         item.id === itemId ? { ...item, isAvailable: !item.isAvailable } : item
       )
     )
+    const item = menuItems.find(m => m.id === itemId)
+    if (item) {
+      toast.success(`Status menu "${item.name}" berhasil diubah`)
+    }
   }
 
   const totalStock = menuItems.reduce((acc, item) => acc + item.stock, 0)
   const availableItems = menuItems.filter(item => item.isAvailable).length
+
+  const openEditDialog = (item: MenuItem) => {
+    setEditingItem(item)
+    setFormData({
+      name: item.name,
+      price: item.price.toString(),
+      stock: item.stock.toString(),
+      description: item.description,
+    })
+    setFormErrors({})
+    setEditDialogOpen(true)
+  }
+
+  const validateForm = (): boolean => {
+    const errors: FormErrors = {}
+    
+    if (!formData.name.trim()) {
+      errors.name = "Nama menu wajib diisi"
+    }
+    
+    if (!formData.price.trim()) {
+      errors.price = "Harga wajib diisi"
+    } else if (isNaN(Number(formData.price)) || Number(formData.price) <= 0) {
+      errors.price = "Harga harus berupa angka positif"
+    }
+    
+    if (!formData.stock.trim()) {
+      errors.stock = "Stok wajib diisi"
+    } else if (isNaN(Number(formData.stock)) || Number(formData.stock) < 0) {
+      errors.stock = "Stok harus berupa angka positif atau nol"
+    }
+
+    if (!formData.description.trim()) {
+      errors.description = "Deskripsi wajib diisi"
+    }
+    
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      toast.error("Mohon perbaiki kesalahan pada form")
+      return
+    }
+
+    setIsSubmitting(true)
+
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1500))
+
+    // Simulate network error
+    if (simulateNetworkError) {
+      setIsSubmitting(false)
+      toast.error("Koneksi internet tidak stabil", {
+        description: "Silakan coba lagi atau periksa koneksi internet Anda.",
+        icon: <WifiOff className="h-4 w-4" />,
+      })
+      return
+    }
+
+    // Update the menu item
+    if (editingItem) {
+      setMenuItems(items =>
+        items.map(item =>
+          item.id === editingItem.id
+            ? {
+                ...item,
+                name: formData.name.trim(),
+                price: Number(formData.price),
+                stock: Number(formData.stock),
+                description: formData.description.trim(),
+              }
+            : item
+        )
+      )
+    }
+
+    setIsSubmitting(false)
+    setEditDialogOpen(false)
+    setEditingItem(null)
+    toast.success("Menu berhasil diperbarui!", {
+      description: `"${formData.name}" telah disimpan.`,
+    })
+  }
+
+  const openDeleteDialog = (item: MenuItem) => {
+    setDeletingItem(item)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDelete = () => {
+    if (deletingItem) {
+      setMenuItems(items => items.filter(item => item.id !== deletingItem.id))
+      toast.success(`Menu "${deletingItem.name}" berhasil dihapus`)
+      setDeleteDialogOpen(false)
+      setDeletingItem(null)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -135,10 +281,24 @@ export function UMKMView() {
               <CardTitle className="text-xl">Kelola Menu</CardTitle>
               <CardDescription>Atur menu makanan dan minuman Anda</CardDescription>
             </div>
-            <Button className="gap-2 w-full sm:w-auto">
-              <Plus className="h-4 w-4" />
-              Tambah Menu
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Network Error Toggle for Testing */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Switch
+                  checked={simulateNetworkError}
+                  onCheckedChange={setSimulateNetworkError}
+                  id="network-toggle"
+                />
+                <label htmlFor="network-toggle" className="cursor-pointer flex items-center gap-1">
+                  <WifiOff className="h-3 w-3" />
+                  <span className="hidden sm:inline">Simulasi Error</span>
+                </label>
+              </div>
+              <Button className="gap-2 w-full sm:w-auto">
+                <Plus className="h-4 w-4" />
+                Tambah Menu
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {/* Search */}
@@ -202,10 +362,20 @@ export function UMKMView() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={() => openEditDialog(item)}
+                          >
                             <Edit2 className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => openDeleteDialog(item)}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -224,6 +394,162 @@ export function UMKMView() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Menu Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit2 className="h-5 w-5 text-primary" />
+              Edit Menu
+            </DialogTitle>
+            <DialogDescription>
+              Ubah informasi menu di bawah ini
+            </DialogDescription>
+          </DialogHeader>
+
+          <FieldGroup>
+            <Field data-invalid={!!formErrors.name}>
+              <FieldLabel htmlFor="edit-name">Nama Menu</FieldLabel>
+              <Input
+                id="edit-name"
+                placeholder="Masukkan nama menu"
+                value={formData.name}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, name: e.target.value }))
+                  if (formErrors.name) setFormErrors(prev => ({ ...prev, name: undefined }))
+                }}
+                className={formErrors.name ? "border-destructive" : ""}
+              />
+              {formErrors.name && (
+                <FieldError>
+                  <span className="flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {formErrors.name}
+                  </span>
+                </FieldError>
+              )}
+            </Field>
+
+            <Field data-invalid={!!formErrors.price}>
+              <FieldLabel htmlFor="edit-price">Harga (Rp)</FieldLabel>
+              <Input
+                id="edit-price"
+                type="number"
+                placeholder="Masukkan harga"
+                value={formData.price}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, price: e.target.value }))
+                  if (formErrors.price) setFormErrors(prev => ({ ...prev, price: undefined }))
+                }}
+                className={formErrors.price ? "border-destructive" : ""}
+              />
+              {formErrors.price && (
+                <FieldError>
+                  <span className="flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {formErrors.price}
+                  </span>
+                </FieldError>
+              )}
+            </Field>
+
+            <Field data-invalid={!!formErrors.stock}>
+              <FieldLabel htmlFor="edit-stock">Stok</FieldLabel>
+              <Input
+                id="edit-stock"
+                type="number"
+                placeholder="Masukkan jumlah stok"
+                value={formData.stock}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, stock: e.target.value }))
+                  if (formErrors.stock) setFormErrors(prev => ({ ...prev, stock: undefined }))
+                }}
+                className={formErrors.stock ? "border-destructive" : ""}
+              />
+              {formErrors.stock && (
+                <FieldError>
+                  <span className="flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {formErrors.stock}
+                  </span>
+                </FieldError>
+              )}
+            </Field>
+
+            <Field data-invalid={!!formErrors.description}>
+              <FieldLabel htmlFor="edit-description">Deskripsi</FieldLabel>
+              <Textarea
+                id="edit-description"
+                placeholder="Masukkan deskripsi menu"
+                value={formData.description}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, description: e.target.value }))
+                  if (formErrors.description) setFormErrors(prev => ({ ...prev, description: undefined }))
+                }}
+                className={formErrors.description ? "border-destructive" : ""}
+                rows={3}
+              />
+              {formErrors.description && (
+                <FieldError>
+                  <span className="flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {formErrors.description}
+                  </span>
+                </FieldError>
+              )}
+            </Field>
+          </FieldGroup>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setEditDialogOpen(false)}
+              disabled={isSubmitting}
+            >
+              Batal
+            </Button>
+            <Button 
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="gap-2"
+            >
+              {isSubmitting && <Spinner className="h-4 w-4" />}
+              {isSubmitting ? "Menyimpan..." : "Simpan Perubahan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Hapus Menu
+            </DialogTitle>
+            <DialogDescription>
+              Apakah Anda yakin ingin menghapus menu <strong>{deletingItem?.name}</strong>? Tindakan ini tidak dapat dibatalkan.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteDialogOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleDelete}
+            >
+              Hapus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
