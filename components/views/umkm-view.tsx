@@ -1,19 +1,12 @@
 "use client"
 
 import { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Switch } from "@/components/ui/switch"
 import {
   Dialog,
@@ -42,7 +35,14 @@ import {
   Store,
   AlertCircle,
   WifiOff,
-  Bell
+  Bell,
+  LayoutDashboard,
+  UtensilsCrossed,
+  ClipboardList,
+  Settings,
+  LogOut,
+  ChevronRight,
+  X
 } from "lucide-react"
 import { formatPrice } from "@/lib/mock-data"
 import type { MenuItem } from "@/lib/mock-data"
@@ -56,12 +56,21 @@ interface FormErrors {
   description?: string
 }
 
+const sidebarItems = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "menu", label: "Kelola Menu", icon: UtensilsCrossed },
+  { id: "orders", label: "Pesanan", icon: ClipboardList },
+  { id: "settings", label: "Pengaturan", icon: Settings },
+]
+
 export function UMKMView() {
   const { approvedUMKMs, orders, updateMenuItem, deleteMenuItem } = useData()
   
   // Simulate logged in UMKM - using first approved UMKM
   const currentUMKM = approvedUMKMs[0]
   const [searchQuery, setSearchQuery] = useState("")
+  const [activeSection, setActiveSection] = useState("menu")
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   
   // Edit Modal State
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -80,14 +89,23 @@ export function UMKMView() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingItem, setDeletingItem] = useState<MenuItem | null>(null)
 
+  // Add Menu State
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
+
   if (!currentUMKM) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Store className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-foreground mb-2">Tidak ada UMKM</h2>
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-background flex items-center justify-center">
+        <motion.div 
+          className="text-center p-8"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
+            <Store className="h-10 w-10 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Tidak ada UMKM</h2>
           <p className="text-muted-foreground">Belum ada UMKM yang terverifikasi</p>
-        </div>
+        </motion.div>
       </div>
     )
   }
@@ -105,7 +123,9 @@ export function UMKMView() {
     const item = menuItems.find(m => m.id === itemId)
     if (item) {
       updateMenuItem(currentUMKM.id, itemId, { isAvailable: !item.isAvailable })
-      toast.success(`Status menu "${item.name}" berhasil diubah`)
+      toast.success(`Status menu "${item.name}" berhasil diubah`, {
+        className: "bg-primary text-primary-foreground",
+      })
     }
   }
 
@@ -205,124 +225,155 @@ export function UMKMView() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Dashboard Header */}
-      <div className="bg-card border-b border-border">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Store className="h-7 w-7 text-primary" />
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/3 to-background flex">
+      {/* Glassmorphism Sidebar - Desktop */}
+      <aside className="hidden lg:flex flex-col w-72 fixed left-0 top-0 bottom-0 z-40">
+        <div className="flex-1 m-4 rounded-2xl bg-sidebar/80 backdrop-blur-xl border border-sidebar-border/50 shadow-2xl overflow-hidden">
+          {/* Logo Area */}
+          <div className="p-6 border-b border-sidebar-border/30">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-sidebar-primary to-sidebar-primary/70 flex items-center justify-center shadow-lg">
+                <Store className="h-6 w-6 text-sidebar-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">{currentUMKM.name}</h1>
-                <p className="text-muted-foreground">{currentUMKM.location}</p>
+                <h2 className="font-bold text-sidebar-foreground text-lg">UMKM Panel</h2>
+                <p className="text-xs text-sidebar-foreground/60">Dashboard</p>
+              </div>
+            </div>
+          </div>
+
+          {/* UMKM Info */}
+          <div className="p-4 mx-4 mt-4 rounded-xl bg-sidebar-accent/30 backdrop-blur">
+            <p className="text-sm font-semibold text-sidebar-foreground truncate">{currentUMKM.name}</p>
+            <p className="text-xs text-sidebar-foreground/60 truncate">{currentUMKM.location}</p>
+            <Badge className="mt-2 bg-success/20 text-success border-success/30 text-xs">
+              Terverifikasi
+            </Badge>
+          </div>
+
+          {/* Navigation */}
+          <nav className="p-4 space-y-1">
+            {sidebarItems.map((item) => {
+              const Icon = item.icon
+              const isActive = activeSection === item.id
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveSection(item.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    isActive 
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg" 
+                      : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/40"
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  {item.label}
+                  {item.id === "orders" && newOrdersCount > 0 && (
+                    <Badge className="ml-auto bg-destructive text-destructive-foreground text-xs h-5 w-5 p-0 flex items-center justify-center rounded-full">
+                      {newOrdersCount}
+                    </Badge>
+                  )}
+                  {isActive && <ChevronRight className="h-4 w-4 ml-auto" />}
+                </button>
+              )
+            })}
+          </nav>
+
+          {/* Bottom Section */}
+          <div className="mt-auto p-4 border-t border-sidebar-border/30">
+            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10 transition-all">
+              <LogOut className="h-5 w-5" />
+              Keluar
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="lg:hidden fixed inset-0 bg-foreground/50 backdrop-blur-sm z-40"
+              onClick={() => setSidebarOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: -300 }}
+              animate={{ x: 0 }}
+              exit={{ x: -300 }}
+              transition={{ type: "spring", damping: 25 }}
+              className="lg:hidden fixed left-0 top-0 bottom-0 w-72 z-50 bg-sidebar/95 backdrop-blur-xl border-r border-sidebar-border/50 shadow-2xl"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-sidebar-border/30">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-sidebar-primary to-sidebar-primary/70 flex items-center justify-center">
+                    <Store className="h-5 w-5 text-sidebar-primary-foreground" />
+                  </div>
+                  <span className="font-bold text-sidebar-foreground">UMKM Panel</span>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)} className="text-sidebar-foreground">
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              <nav className="p-4 space-y-1">
+                {sidebarItems.map((item) => {
+                  const Icon = item.icon
+                  const isActive = activeSection === item.id
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setActiveSection(item.id)
+                        setSidebarOpen(false)
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                        isActive 
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground" 
+                          : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/40"
+                      }`}
+                    >
+                      <Icon className="h-5 w-5" />
+                      {item.label}
+                    </button>
+                  )
+                })}
+              </nav>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content */}
+      <main className="flex-1 lg:ml-72">
+        {/* Top Header */}
+        <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-lg border-b border-border">
+          <div className="px-4 lg:px-8 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden"
+                onClick={() => setSidebarOpen(true)}
+              >
+                <LayoutDashboard className="h-5 w-5" />
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold text-foreground">{currentUMKM.name}</h1>
+                <p className="text-sm text-muted-foreground">{currentUMKM.location}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               {newOrdersCount > 0 && (
-                <Badge className="bg-success/10 text-success border-success/30 gap-1">
-                  <Bell className="h-3 w-3" />
+                <Badge className="bg-success text-success-foreground gap-1.5 py-1.5 px-3 rounded-full shadow-md">
+                  <Bell className="h-3.5 w-3.5" />
                   {newOrdersCount} Pesanan Baru
                 </Badge>
               )}
-              <Badge variant="secondary" className="w-fit">
-                UMKM Terverifikasi
-              </Badge>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-8">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Package className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Menu</p>
-                  <p className="text-2xl font-bold text-foreground">{menuItems.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
-                  <ShoppingBag className="h-5 w-5 text-success" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Menu Aktif</p>
-                  <p className="text-2xl font-bold text-foreground">{availableItems}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                  <TrendingUp className="h-5 w-5 text-accent" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Stok</p>
-                  <p className="text-2xl font-bold text-foreground">{totalStock}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                  <DollarSign className="h-5 w-5 text-warning" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Pesanan Hari Ini</p>
-                  <p className="text-2xl font-bold text-foreground">{umkmOrders.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Recent Orders Notification */}
-        {newOrdersCount > 0 && (
-          <Card className="mb-8 border-success/30 bg-success/5">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-success/20 flex items-center justify-center">
-                  <Bell className="h-6 w-6 text-success" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-foreground">Pesanan Baru!</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Anda memiliki {newOrdersCount} pesanan baru yang perlu diproses
-                  </p>
-                </div>
-                <Button variant="outline" className="border-success/30 text-success hover:bg-success/10">
-                  Lihat Pesanan
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Menu Management Section */}
-        <Card id="kelola">
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <CardTitle className="text-xl">Kelola Menu</CardTitle>
-              <CardDescription>Atur menu makanan dan minuman Anda</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
               {/* Network Error Toggle for Testing */}
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-full px-3 py-1.5">
                 <Switch
                   checked={simulateNetworkError}
                   onCheckedChange={setSimulateNetworkError}
@@ -330,116 +381,233 @@ export function UMKMView() {
                 />
                 <label htmlFor="network-toggle" className="cursor-pointer flex items-center gap-1">
                   <WifiOff className="h-3 w-3" />
-                  <span className="hidden sm:inline">Simulasi Error</span>
+                  <span className="text-xs">Test Error</span>
                 </label>
               </div>
-              <Button className="gap-2 w-full sm:w-auto">
-                <Plus className="h-4 w-4" />
-                Tambah Menu
-              </Button>
             </div>
-          </CardHeader>
-          <CardContent>
-            {/* Search */}
-            <div className="relative max-w-sm mb-6">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari menu..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+          </div>
+        </header>
 
-            {/* Menu Table */}
-            <div className="rounded-lg border border-border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead>Menu</TableHead>
-                    <TableHead>Kategori</TableHead>
-                    <TableHead className="text-right">Harga</TableHead>
-                    <TableHead className="text-center">Stok</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="text-right">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+        <div className="p-4 lg:p-8">
+          {/* Stats Grid */}
+          <motion.div 
+            className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Card className="rounded-2xl border-0 shadow-lg bg-gradient-to-br from-card to-primary/5">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-primary/15 flex items-center justify-center">
+                    <Package className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">Total Menu</p>
+                    <p className="text-2xl font-bold text-foreground">{menuItems.length}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="rounded-2xl border-0 shadow-lg bg-gradient-to-br from-card to-success/5">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-success/15 flex items-center justify-center">
+                    <ShoppingBag className="h-6 w-6 text-success" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">Menu Aktif</p>
+                    <p className="text-2xl font-bold text-foreground">{availableItems}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="rounded-2xl border-0 shadow-lg bg-gradient-to-br from-card to-accent/5">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-accent/15 flex items-center justify-center">
+                    <TrendingUp className="h-6 w-6 text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">Total Stok</p>
+                    <p className="text-2xl font-bold text-foreground">{totalStock}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="rounded-2xl border-0 shadow-lg bg-gradient-to-br from-card to-warning/5">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-warning/15 flex items-center justify-center">
+                    <DollarSign className="h-6 w-6 text-warning" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">Pesanan Hari Ini</p>
+                    <p className="text-2xl font-bold text-foreground">{umkmOrders.length}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Recent Orders Notification */}
+          {newOrdersCount > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card className="mb-8 rounded-2xl border-success/30 bg-gradient-to-r from-success/10 to-success/5 shadow-lg">
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-4">
+                    <div className="h-14 w-14 rounded-full bg-success/20 flex items-center justify-center">
+                      <Bell className="h-7 w-7 text-success" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-foreground text-lg">Pesanan Baru!</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Anda memiliki {newOrdersCount} pesanan baru yang perlu diproses
+                      </p>
+                    </div>
+                    <Button className="rounded-xl shadow-md bg-success hover:bg-success/90 text-success-foreground">
+                      Lihat Pesanan
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Menu Management Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="rounded-2xl border-0 shadow-xl" id="kelola">
+              <CardHeader className="pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-xl font-bold">Kelola Menu</CardTitle>
+                    <CardDescription>Atur menu makanan dan minuman Anda</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Search */}
+                <div className="relative max-w-md mb-6">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    placeholder="Cari menu..."
+                    className="pl-12 h-12 rounded-xl"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+
+                {/* Menu Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {filteredItems.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                            <span className="text-lg">🍽️</span>
+                    <motion.div
+                      key={item.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="group"
+                    >
+                      <Card className="overflow-hidden rounded-2xl border border-border/50 hover:border-primary/30 hover:shadow-lg transition-all">
+                        <div className="aspect-video bg-gradient-to-br from-primary/10 via-secondary to-muted relative">
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-5xl group-hover:scale-110 transition-transform duration-300">
+                              {item.category === "Minuman" ? "🥤" : item.category === "Makanan Ringan" ? "🍪" : "🍽️"}
+                            </span>
                           </div>
-                          <div>
-                            <p className="font-medium text-foreground">{item.name}</p>
-                            <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+                          {item.stock === 0 && (
+                            <div className="absolute top-3 right-3">
+                              <Badge variant="destructive" className="rounded-full">Habis</Badge>
+                            </div>
+                          )}
+                        </div>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div>
+                              <h3 className="font-semibold text-foreground">{item.name}</h3>
+                              <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+                            </div>
+                            <Badge variant="outline" className="shrink-0 rounded-full text-xs">
+                              {item.category}
+                            </Badge>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="text-xs">
-                          {item.category}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatPrice(item.price)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant={item.stock === 0 ? "destructive" : item.stock <= 5 ? "outline" : "secondary"}>
-                          {item.stock}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center">
-                          <Switch
-                            checked={item.isAvailable}
-                            onCheckedChange={() => toggleAvailability(item.id)}
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8"
-                            onClick={() => openEditDialog(item)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => openDeleteDialog(item)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                          
+                          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+                            <div>
+                              <p className="text-lg font-bold text-primary">{formatPrice(item.price)}</p>
+                              <p className="text-xs text-muted-foreground">Stok: {item.stock}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={item.isAvailable}
+                                onCheckedChange={() => toggleAvailability(item.id)}
+                              />
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-9 w-9 rounded-xl"
+                                onClick={() => openEditDialog(item)}
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-9 w-9 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => openDeleteDialog(item)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   ))}
-                </TableBody>
-              </Table>
-            </div>
+                </div>
 
-            {filteredItems.length === 0 && (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Tidak ada menu yang ditemukan</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                {filteredItems.length === 0 && (
+                  <div className="text-center py-12 border-2 border-dashed border-border rounded-2xl">
+                    <p className="text-muted-foreground">Tidak ada menu yang ditemukan</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Floating Action Button */}
+        <motion.div
+          className="fixed bottom-6 right-6 z-50"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", delay: 0.5 }}
+        >
+          <Button
+            size="lg"
+            className="h-14 w-14 rounded-full shadow-2xl hover:shadow-primary/40 hover:scale-110 transition-all"
+            onClick={() => setAddDialogOpen(true)}
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+        </motion.div>
+      </main>
 
       {/* Edit Menu Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Edit2 className="h-5 w-5 text-primary" />
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Edit2 className="h-5 w-5 text-primary" />
+              </div>
               Edit Menu
             </DialogTitle>
             <DialogDescription>
@@ -458,7 +626,7 @@ export function UMKMView() {
                   setFormData(prev => ({ ...prev, name: e.target.value }))
                   if (formErrors.name) setFormErrors(prev => ({ ...prev, name: undefined }))
                 }}
-                className={formErrors.name ? "border-destructive" : ""}
+                className={`rounded-xl h-11 ${formErrors.name ? "border-destructive" : ""}`}
               />
               {formErrors.name && (
                 <FieldError>
@@ -481,7 +649,7 @@ export function UMKMView() {
                   setFormData(prev => ({ ...prev, price: e.target.value }))
                   if (formErrors.price) setFormErrors(prev => ({ ...prev, price: undefined }))
                 }}
-                className={formErrors.price ? "border-destructive" : ""}
+                className={`rounded-xl h-11 ${formErrors.price ? "border-destructive" : ""}`}
               />
               {formErrors.price && (
                 <FieldError>
@@ -504,7 +672,7 @@ export function UMKMView() {
                   setFormData(prev => ({ ...prev, stock: e.target.value }))
                   if (formErrors.stock) setFormErrors(prev => ({ ...prev, stock: undefined }))
                 }}
-                className={formErrors.stock ? "border-destructive" : ""}
+                className={`rounded-xl h-11 ${formErrors.stock ? "border-destructive" : ""}`}
               />
               {formErrors.stock && (
                 <FieldError>
@@ -526,7 +694,7 @@ export function UMKMView() {
                   setFormData(prev => ({ ...prev, description: e.target.value }))
                   if (formErrors.description) setFormErrors(prev => ({ ...prev, description: undefined }))
                 }}
-                className={formErrors.description ? "border-destructive" : ""}
+                className={`rounded-xl ${formErrors.description ? "border-destructive" : ""}`}
                 rows={3}
               />
               {formErrors.description && (
@@ -541,20 +709,18 @@ export function UMKMView() {
           </FieldGroup>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button 
-              variant="outline" 
-              onClick={() => setEditDialogOpen(false)}
-              disabled={isSubmitting}
-            >
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="rounded-xl">
               Batal
             </Button>
-            <Button 
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="gap-2"
-            >
-              {isSubmitting && <Spinner className="h-4 w-4" />}
-              {isSubmitting ? "Menyimpan..." : "Simpan Perubahan"}
+            <Button onClick={handleSubmit} disabled={isSubmitting} className="rounded-xl">
+              {isSubmitting ? (
+                <>
+                  <Spinner className="mr-2 h-4 w-4" />
+                  Menyimpan...
+                </>
+              ) : (
+                "Simpan Perubahan"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -562,31 +728,50 @@ export function UMKMView() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <Trash2 className="h-5 w-5" />
+            <DialogTitle className="flex items-center gap-2">
+              <div className="h-10 w-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+                <Trash2 className="h-5 w-5 text-destructive" />
+              </div>
               Hapus Menu
             </DialogTitle>
             <DialogDescription>
-              Apakah Anda yakin ingin menghapus menu <strong>{deletingItem?.name}</strong>? Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin menghapus menu "{deletingItem?.name}"? 
+              Tindakan ini tidak dapat dibatalkan.
             </DialogDescription>
           </DialogHeader>
-
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button 
-              variant="outline" 
-              onClick={() => setDeleteDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="rounded-xl">
               Batal
             </Button>
-            <Button 
-              variant="destructive"
-              onClick={handleDelete}
-              className="gap-2"
-            >
-              <Trash2 className="h-4 w-4" />
-              Ya, Hapus
+            <Button variant="destructive" onClick={handleDelete} className="rounded-xl">
+              Hapus Menu
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Menu Dialog */}
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Plus className="h-5 w-5 text-primary" />
+              </div>
+              Tambah Menu Baru
+            </DialogTitle>
+            <DialogDescription>
+              Tambahkan menu baru ke daftar produk Anda
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-center py-8 text-muted-foreground">
+            <p>Fitur ini akan segera tersedia</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddDialogOpen(false)} className="rounded-xl">
+              Tutup
             </Button>
           </DialogFooter>
         </DialogContent>

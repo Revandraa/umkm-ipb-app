@@ -1,5 +1,18 @@
 export type Role = "mahasiswa" | "umkm" | "admin"
 
+export const kantinLocations = [
+  { id: "all", name: "Semua Kantin" },
+  { id: "kantin-stevia", name: "Kantin Stevia" },
+  { id: "kantin-fema", name: "Kantin FEMA" },
+  { id: "kantin-faperta", name: "Kantin Fakultas Pertanian" },
+  { id: "kantin-pusat", name: "Kantin Pusat IPB" },
+  { id: "food-court", name: "Food Court Dramaga" },
+  { id: "gku", name: "GKU IPB" },
+  { id: "rektorat", name: "Gedung Rektorat" },
+  { id: "asrama", name: "Asrama Mahasiswa" },
+  { id: "fmipa", name: "Kantin FMIPA" },
+]
+
 export interface MenuItem {
   id: string
   name: string
