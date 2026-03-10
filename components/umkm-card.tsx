@@ -1,9 +1,8 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { MapPin, Star, ChevronRight } from "lucide-react"
+import { MapPin, Star, Store, ChevronRight, Utensils } from "lucide-react"
 import type { UMKM } from "@/lib/mock-data"
 
 interface UMKMCardProps {
@@ -18,54 +17,72 @@ export function UMKMCard({ umkm, onClick, isSelected }: UMKMCardProps) {
 
   return (
     <Card 
-      className={`group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 ${
+      className={`group overflow-hidden transition-all duration-300 cursor-pointer rounded-2xl border-0 shadow-md hover:shadow-xl ${
         isSelected 
-          ? "border-primary shadow-md bg-primary/5" 
-          : "border-border hover:border-primary/30"
+          ? "ring-2 ring-primary shadow-lg bg-gradient-to-br from-primary/10 to-primary/5" 
+          : "hover:-translate-y-1"
       }`} 
       onClick={onClick}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
-              {umkm.name}
-            </CardTitle>
-            <CardDescription className="mt-1 line-clamp-2">
-              {umkm.description}
-            </CardDescription>
+      {/* Header Image Area */}
+      <div className="aspect-[16/9] bg-gradient-to-br from-primary/15 via-primary/10 to-secondary relative overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="h-16 w-16 rounded-2xl bg-card/90 backdrop-blur flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500">
+            <Store className="h-8 w-8 text-primary" />
           </div>
-          <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-          <div className="flex items-center gap-1">
-            <MapPin className="h-4 w-4" />
-            <span className="truncate">{umkm.location}</span>
-          </div>
-          {umkm.rating > 0 && (
-            <div className="flex items-center gap-1">
-              <Star className="h-4 w-4 fill-warning text-warning" />
-              <span className="font-medium text-foreground">{umkm.rating}</span>
-            </div>
-          )}
         </div>
         
-        <div className="flex items-center justify-between">
+        {/* Rating Badge */}
+        {umkm.rating > 0 && (
+          <div className="absolute top-3 left-3">
+            <Badge className="bg-card/90 backdrop-blur text-foreground border-0 shadow-md rounded-full px-2.5 py-1">
+              <Star className="h-3.5 w-3.5 fill-warning text-warning mr-1" />
+              <span className="font-semibold">{umkm.rating}</span>
+            </Badge>
+          </div>
+        )}
+
+        {/* Selection indicator */}
+        {isSelected && (
+          <div className="absolute top-3 right-3">
+            <Badge className="bg-primary text-primary-foreground border-0 shadow-md rounded-full">
+              Dipilih
+            </Badge>
+          </div>
+        )}
+      </div>
+
+      <CardContent className="p-5">
+        {/* Title and description */}
+        <div className="mb-3">
+          <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors line-clamp-1">
+            {umkm.name}
+          </h3>
+          <p className="text-sm text-muted-foreground line-clamp-2 mt-1 min-h-[2.5rem]">
+            {umkm.description}
+          </p>
+        </div>
+
+        {/* Location */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+          <MapPin className="h-4 w-4 shrink-0 text-primary/70" />
+          <span className="truncate">{umkm.location}</span>
+        </div>
+        
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-3 border-t border-border/50">
           <div className="flex gap-2">
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs rounded-full px-3 py-1 bg-primary/10 text-primary border-0">
+              <Utensils className="h-3 w-3 mr-1" />
               {menuCount} Menu
             </Badge>
             {availableMenuCount < menuCount && (
-              <Badge variant="outline" className="text-xs text-muted-foreground">
+              <Badge variant="outline" className="text-xs rounded-full">
                 {availableMenuCount} Tersedia
               </Badge>
             )}
           </div>
-          <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/10">
-            Lihat Menu
-          </Button>
+          <ChevronRight className={`h-5 w-5 transition-all ${isSelected ? "text-primary translate-x-1" : "text-muted-foreground group-hover:text-primary group-hover:translate-x-1"}`} />
         </div>
       </CardContent>
     </Card>

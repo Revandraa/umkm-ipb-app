@@ -1,19 +1,12 @@
 "use client"
 
 import { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import {
   Dialog,
   DialogContent,
@@ -26,7 +19,6 @@ import {
   Field,
   FieldLabel,
   FieldError,
-  FieldGroup,
 } from "@/components/ui/field"
 import { Spinner } from "@/components/ui/spinner"
 import { 
@@ -42,12 +34,32 @@ import {
   MapPin,
   Calendar,
   User,
-  FileText
+  FileText,
+  ArrowRight,
+  Utensils
 } from "lucide-react"
 import { formatPrice } from "@/lib/mock-data"
 import type { UMKM } from "@/lib/mock-data"
 import { useData } from "@/lib/data-context"
 import { toast } from "sonner"
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08 }
+  }
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.95 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    scale: 1,
+    transition: { duration: 0.4, ease: "easeOut" }
+  }
+}
 
 export function AdminView() {
   const { approvedUMKMs, pendingUMKMs, approveUMKM, rejectUMKM } = useData()
@@ -142,270 +154,301 @@ export function AdminView() {
   )
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/3 to-background">
       {/* Dashboard Header */}
-      <div className="bg-card border-b border-border">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Shield className="h-7 w-7 text-primary" />
+      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b border-border">
+        <div className="container mx-auto px-4 py-8">
+          <motion.div 
+            className="flex items-center gap-5"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-xl shadow-primary/20">
+              <Shield className="h-8 w-8 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
+              <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
               <p className="text-muted-foreground">Kelola persetujuan dan verifikasi UMKM</p>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-8">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Store className="h-5 w-5 text-primary" />
+        <motion.div 
+          className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div variants={itemVariants}>
+            <Card className="rounded-2xl border-0 shadow-lg bg-gradient-to-br from-card to-primary/5 overflow-hidden">
+              <CardContent className="p-5 relative">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-primary/15 flex items-center justify-center">
+                    <Store className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">Total UMKM</p>
+                    <p className="text-3xl font-bold text-foreground">{approvedCount + pendingCount}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total UMKM</p>
-                  <p className="text-2xl font-bold text-foreground">{approvedCount + pendingCount}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+          <motion.div variants={itemVariants}>
+            <Card className="rounded-2xl border-0 shadow-lg bg-gradient-to-br from-card to-success/5 overflow-hidden">
+              <CardContent className="p-5 relative">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-success/15 flex items-center justify-center">
+                    <CheckCircle2 className="h-6 w-6 text-success" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">Terverifikasi</p>
+                    <p className="text-3xl font-bold text-foreground">{approvedCount}</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
-                  <CheckCircle2 className="h-5 w-5 text-success" />
+              </CardContent>
+            </Card>
+          </motion.div>
+          <motion.div variants={itemVariants}>
+            <Card className="rounded-2xl border-0 shadow-lg bg-gradient-to-br from-card to-warning/5 overflow-hidden">
+              <CardContent className="p-5 relative">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-warning/15 flex items-center justify-center">
+                    <Clock className="h-6 w-6 text-warning" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">Menunggu</p>
+                    <p className="text-3xl font-bold text-foreground">{pendingCount}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Terverifikasi</p>
-                  <p className="text-2xl font-bold text-foreground">{approvedCount}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+          <motion.div variants={itemVariants}>
+            <Card className="rounded-2xl border-0 shadow-lg bg-gradient-to-br from-card to-accent/5 overflow-hidden">
+              <CardContent className="p-5 relative">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-accent/15 flex items-center justify-center">
+                    <Users className="h-6 w-6 text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">Pengguna Aktif</p>
+                    <p className="text-3xl font-bold text-foreground">1,234</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                  <Clock className="h-5 w-5 text-warning" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Menunggu</p>
-                  <p className="text-2xl font-bold text-foreground">{pendingCount}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                  <Users className="h-5 w-5 text-accent" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Pengguna Aktif</p>
-                  <p className="text-2xl font-bold text-foreground">1,234</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
 
         {/* Pending Approvals Section */}
-        <Card id="antrian">
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-warning" />
-                  Antrian Persetujuan UMKM
-                </CardTitle>
-                <CardDescription>
-                  Verifikasi pendaftaran UMKM baru
-                </CardDescription>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card className="rounded-2xl border-0 shadow-xl mb-10" id="antrian">
+            <CardHeader className="pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-warning/15 flex items-center justify-center">
+                    <Clock className="h-6 w-6 text-warning" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-bold">Antrian Persetujuan UMKM</CardTitle>
+                    <CardDescription>Verifikasi pendaftaran UMKM baru</CardDescription>
+                  </div>
+                </div>
+                {pendingCount > 0 && (
+                  <Badge className="bg-warning/15 text-warning border-warning/30 py-1.5 px-4 rounded-full">
+                    <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />
+                    {pendingCount} menunggu verifikasi
+                  </Badge>
+                )}
               </div>
-              {pendingCount > 0 && (
-                <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
-                  <AlertTriangle className="h-3 w-3 mr-1" />
-                  {pendingCount} menunggu
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* Search */}
-            <div className="relative max-w-sm mb-6">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari UMKM..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+            </CardHeader>
+            <CardContent>
+              {/* Search */}
+              <div className="relative max-w-md mb-6">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  placeholder="Cari UMKM atau pemilik..."
+                  className="pl-12 h-12 rounded-xl"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
 
-            {filteredPending.length > 0 ? (
-              <div className="rounded-lg border border-border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead>UMKM</TableHead>
-                      <TableHead>Pemilik</TableHead>
-                      <TableHead>Lokasi</TableHead>
-                      <TableHead>Tanggal Daftar</TableHead>
-                      <TableHead className="text-center">Menu</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredPending.map((umkm) => (
-                      <TableRow key={umkm.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                              <Store className="h-5 w-5 text-primary" />
+              {filteredPending.length > 0 ? (
+                <motion.div 
+                  className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  {filteredPending.map((umkm) => (
+                    <motion.div key={umkm.id} variants={itemVariants}>
+                      <Card className="group rounded-2xl border border-warning/30 bg-gradient-to-br from-warning/5 to-transparent hover:shadow-lg hover:border-warning/50 transition-all overflow-hidden">
+                        <CardContent className="p-5">
+                          {/* Header */}
+                          <div className="flex items-start gap-4 mb-4">
+                            <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                              <Store className="h-7 w-7 text-primary" />
                             </div>
-                            <div>
-                              <p className="font-medium text-foreground">{umkm.name}</p>
-                              <p className="text-xs text-muted-foreground line-clamp-1">{umkm.description}</p>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-foreground truncate">{umkm.name}</h3>
+                              <p className="text-sm text-muted-foreground truncate">{umkm.owner}</p>
+                              <Badge variant="outline" className="mt-2 bg-warning/10 text-warning border-warning/30 text-xs rounded-full">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Menunggu Verifikasi
+                              </Badge>
                             </div>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {umkm.owner}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <MapPin className="h-3 w-3" />
-                            <span className="text-sm">{umkm.location}</span>
+
+                          {/* Info */}
+                          <div className="space-y-2 mb-4">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <MapPin className="h-4 w-4 shrink-0" />
+                              <span className="truncate">{umkm.location}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Calendar className="h-4 w-4 shrink-0" />
+                              <span>
+                                {new Date(umkm.createdAt).toLocaleDateString("id-ID", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric"
+                                })}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Utensils className="h-4 w-4 shrink-0" />
+                              <span>{umkm.menu.length} menu terdaftar</span>
+                            </div>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {new Date(umkm.createdAt).toLocaleDateString("id-ID", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric"
-                          })}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="secondary">{umkm.menu.length}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-end gap-2">
+
+                          {/* Actions */}
+                          <div className="flex items-center gap-2 pt-4 border-t border-border/50">
                             <Button
                               variant="outline"
                               size="sm"
-                              className="gap-1"
+                              className="flex-1 rounded-xl gap-1"
                               onClick={() => setSelectedUMKM(umkm)}
                             >
                               <Eye className="h-4 w-4" />
-                              <span className="hidden sm:inline">Detail</span>
+                              Detail
                             </Button>
                             <Button
-                              variant="default"
                               size="sm"
-                              className="gap-1 bg-success hover:bg-success/90 text-success-foreground"
+                              className="flex-1 rounded-xl gap-1 bg-success hover:bg-success/90 text-success-foreground"
                               onClick={() => openApproveDialog(umkm)}
                             >
                               <CheckCircle2 className="h-4 w-4" />
-                              <span className="hidden sm:inline">Setujui</span>
+                              Setujui
                             </Button>
                             <Button
                               variant="destructive"
                               size="sm"
-                              className="gap-1"
+                              className="rounded-xl"
                               onClick={() => openRejectDialog(umkm)}
                             >
                               <XCircle className="h-4 w-4" />
-                              <span className="hidden sm:inline">Tolak</span>
                             </Button>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
-              <div className="text-center py-12 border border-dashed border-border rounded-lg">
-                <CheckCircle2 className="h-12 w-12 text-success mx-auto mb-4" />
-                <p className="text-lg font-medium text-foreground">Semua sudah diproses!</p>
-                <p className="text-muted-foreground">Tidak ada UMKM yang menunggu persetujuan</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              ) : (
+                <motion.div 
+                  className="text-center py-16 border-2 border-dashed border-success/30 rounded-2xl bg-success/5"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
+                  <div className="h-16 w-16 rounded-full bg-success/20 flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="h-8 w-8 text-success" />
+                  </div>
+                  <p className="text-lg font-semibold text-foreground">Semua sudah diproses!</p>
+                  <p className="text-muted-foreground">Tidak ada UMKM yang menunggu persetujuan</p>
+                </motion.div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Approved UMKM List */}
-        <Card className="mt-8" id="umkm-list">
-          <CardHeader>
-            <CardTitle className="text-xl flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-success" />
-              UMKM Terverifikasi
-            </CardTitle>
-            <CardDescription>Daftar UMKM yang sudah disetujui dan aktif</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border border-border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead>UMKM</TableHead>
-                    <TableHead>Pemilik</TableHead>
-                    <TableHead>Lokasi</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="text-center">Menu</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {approvedUMKMs.map((umkm) => (
-                    <TableRow key={umkm.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
-                            <Store className="h-5 w-5 text-success" />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <Card className="rounded-2xl border-0 shadow-xl" id="umkm-list">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-success/15 flex items-center justify-center">
+                  <CheckCircle2 className="h-6 w-6 text-success" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl font-bold">UMKM Terverifikasi</CardTitle>
+                  <CardDescription>Daftar UMKM yang sudah disetujui dan aktif</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <motion.div 
+                className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                {approvedUMKMs.map((umkm) => (
+                  <motion.div key={umkm.id} variants={itemVariants}>
+                    <Card className="group rounded-2xl border border-success/20 bg-gradient-to-br from-success/5 to-transparent hover:shadow-lg hover:border-success/40 transition-all overflow-hidden">
+                      <CardContent className="p-5">
+                        <div className="flex items-start gap-4">
+                          <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                            <Store className="h-7 w-7 text-success" />
                           </div>
-                          <div>
-                            <p className="font-medium text-foreground">{umkm.name}</p>
-                            <p className="text-xs text-muted-foreground line-clamp-1">{umkm.description}</p>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-foreground truncate">{umkm.name}</h3>
+                            <p className="text-sm text-muted-foreground truncate">{umkm.owner}</p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <Badge className="bg-success/15 text-success border-success/30 text-xs rounded-full">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Aktif
+                              </Badge>
+                              <Badge variant="outline" className="text-xs rounded-full">
+                                {umkm.menu.length} menu
+                              </Badge>
+                            </div>
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{umkm.owner}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <MapPin className="h-3 w-3" />
-                          <span className="text-sm">{umkm.location}</span>
+                        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50 text-sm text-muted-foreground">
+                          <MapPin className="h-4 w-4 shrink-0" />
+                          <span className="truncate">{umkm.location}</span>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge className="bg-success/10 text-success border-success/30 hover:bg-success/20">
-                          <CheckCircle2 className="h-3 w-3 mr-1" />
-                          Aktif
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="outline">{umkm.menu.length}</Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
       {/* UMKM Detail Dialog */}
       <Dialog open={!!selectedUMKM} onOpenChange={() => setSelectedUMKM(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Store className="h-5 w-5 text-primary" />
+            <DialogTitle className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Store className="h-6 w-6 text-primary" />
+              </div>
               Detail Pendaftaran UMKM
             </DialogTitle>
             <DialogDescription>
@@ -416,16 +459,16 @@ export function AdminView() {
           {selectedUMKM && (
             <div className="space-y-6">
               {/* UMKM Info Card */}
-              <div className="bg-muted/30 rounded-lg p-4 space-y-4">
+              <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl p-5 space-y-4">
                 <div className="flex items-start gap-4">
-                  <div className="h-16 w-16 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Store className="h-8 w-8 text-primary" />
+                  <div className="h-16 w-16 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shrink-0 shadow-lg">
+                    <Store className="h-8 w-8 text-primary-foreground" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-foreground">{selectedUMKM.name}</h3>
-                    <p className="text-sm text-muted-foreground">{selectedUMKM.description}</p>
+                    <h3 className="text-xl font-bold text-foreground">{selectedUMKM.name}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{selectedUMKM.description}</p>
                   </div>
-                  <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
+                  <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 rounded-full">
                     <Clock className="h-3 w-3 mr-1" />
                     Menunggu
                   </Badge>
@@ -433,28 +476,33 @@ export function AdminView() {
               </div>
 
               {/* Details Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                  <User className="h-5 w-5 text-muted-foreground" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl">
+                  <div className="h-10 w-10 rounded-lg bg-background flex items-center justify-center">
+                    <User className="h-5 w-5 text-muted-foreground" />
+                  </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Pemilik</p>
-                    <p className="font-medium text-foreground">{selectedUMKM.owner}</p>
+                    <p className="font-semibold text-foreground">{selectedUMKM.owner}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                  <MapPin className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl">
+                  <div className="h-10 w-10 rounded-lg bg-background flex items-center justify-center">
+                    <MapPin className="h-5 w-5 text-muted-foreground" />
+                  </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Lokasi</p>
-                    <p className="font-medium text-foreground">{selectedUMKM.location}</p>
+                    <p className="font-semibold text-foreground">{selectedUMKM.location}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl">
+                  <div className="h-10 w-10 rounded-lg bg-background flex items-center justify-center">
+                    <Calendar className="h-5 w-5 text-muted-foreground" />
+                  </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Tanggal Daftar</p>
-                    <p className="font-medium text-foreground">
+                    <p className="font-semibold text-foreground">
                       {new Date(selectedUMKM.createdAt).toLocaleDateString("id-ID", {
-                        weekday: "long",
                         day: "numeric",
                         month: "long",
                         year: "numeric"
@@ -462,24 +510,31 @@ export function AdminView() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl">
+                  <div className="h-10 w-10 rounded-lg bg-background flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-muted-foreground" />
+                  </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Jumlah Menu</p>
-                    <p className="font-medium text-foreground">{selectedUMKM.menu.length} item</p>
+                    <p className="font-semibold text-foreground">{selectedUMKM.menu.length} item</p>
                   </div>
                 </div>
               </div>
 
               {/* Menu List */}
               <div>
-                <h4 className="text-sm font-medium text-foreground mb-3">Daftar Menu</h4>
+                <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Utensils className="h-4 w-4" />
+                  Daftar Menu
+                </h4>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {selectedUMKM.menu.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div key={item.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-lg bg-card flex items-center justify-center">
-                          <span className="text-lg">🍽️</span>
+                          <span className="text-lg">
+                            {item.category === "Minuman" ? "🥤" : item.category === "Makanan Ringan" ? "🍪" : "🍽️"}
+                          </span>
                         </div>
                         <div>
                           <p className="font-medium text-foreground text-sm">{item.name}</p>
@@ -487,108 +542,98 @@ export function AdminView() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-primary">{formatPrice(item.price)}</p>
+                        <p className="font-semibold text-primary text-sm">{formatPrice(item.price)}</p>
                         <p className="text-xs text-muted-foreground">Stok: {item.stock}</p>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
+
+              {/* Status Change Preview */}
+              <div className="bg-success/10 border border-success/30 rounded-xl p-4">
+                <p className="text-sm text-foreground flex items-center gap-2">
+                  <ArrowRight className="h-4 w-4 text-success" />
+                  <span className="font-medium">Jika disetujui:</span>
+                  <span>Status akan berubah menjadi</span>
+                  <Badge className="bg-success text-success-foreground">Aktif</Badge>
+                </p>
+              </div>
             </div>
           )}
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setSelectedUMKM(null)}
-              className="w-full sm:w-auto"
-            >
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setSelectedUMKM(null)} className="rounded-xl">
               Tutup
             </Button>
-            <Button
-              variant="destructive"
-              className="w-full sm:w-auto gap-1"
+            <Button 
+              variant="destructive" 
               onClick={() => {
                 if (selectedUMKM) {
                   openRejectDialog(selectedUMKM)
+                  setSelectedUMKM(null)
                 }
               }}
+              className="rounded-xl"
             >
-              <XCircle className="h-4 w-4" />
+              <XCircle className="h-4 w-4 mr-2" />
               Tolak
             </Button>
-            <Button
-              className="w-full sm:w-auto gap-1 bg-success hover:bg-success/90 text-success-foreground"
+            <Button 
               onClick={() => {
                 if (selectedUMKM) {
                   openApproveDialog(selectedUMKM)
+                  setSelectedUMKM(null)
                 }
               }}
+              className="rounded-xl bg-success hover:bg-success/90 text-success-foreground"
             >
-              <CheckCircle2 className="h-4 w-4" />
+              <CheckCircle2 className="h-4 w-4 mr-2" />
               Setujui
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Approve Confirmation Dialog */}
+      {/* Approval Confirmation Dialog */}
       <Dialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-success" />
-              Konfirmasi Persetujuan
+            <DialogTitle className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-xl bg-success/15 flex items-center justify-center">
+                <CheckCircle2 className="h-6 w-6 text-success" />
+              </div>
+              Setujui UMKM
             </DialogTitle>
             <DialogDescription>
-              Anda akan menyetujui pendaftaran UMKM berikut
+              Apakah Anda yakin ingin menyetujui pendaftaran UMKM "{approvingUMKM?.name}"?
             </DialogDescription>
           </DialogHeader>
-          
-          {approvingUMKM && (
-            <div className="space-y-4">
-              <div className="bg-muted/30 rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Store className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground">{approvingUMKM.name}</p>
-                    <p className="text-sm text-muted-foreground">Pemilik: {approvingUMKM.owner}</p>
-                  </div>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-2 p-3 bg-success/10 rounded-lg border border-success/30">
-                <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
-                <p className="text-sm text-foreground">
-                  Status akan berubah menjadi <span className="font-semibold text-success">Aktif</span> dan menu akan ditampilkan ke mahasiswa
-                </p>
-              </div>
-            </div>
-          )}
+          <div className="bg-success/10 border border-success/30 rounded-xl p-4 my-4">
+            <p className="text-sm text-foreground flex items-center gap-2">
+              <ArrowRight className="h-4 w-4 text-success" />
+              <span>Status akan berubah menjadi:</span>
+              <Badge className="bg-success text-success-foreground">Aktif</Badge>
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              UMKM akan dapat mulai berjualan dan menu mereka akan tampil di halaman mahasiswa.
+            </p>
+          </div>
 
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setApproveDialogOpen(false)}
-              disabled={isProcessing}
-            >
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setApproveDialogOpen(false)} disabled={isProcessing} className="rounded-xl">
               Batal
             </Button>
-            <Button 
-              className="bg-success hover:bg-success/90 text-success-foreground gap-2"
-              onClick={handleApprove}
-              disabled={isProcessing}
-            >
+            <Button onClick={handleApprove} disabled={isProcessing} className="rounded-xl bg-success hover:bg-success/90 text-success-foreground">
               {isProcessing ? (
                 <>
-                  <Spinner className="h-4 w-4" />
+                  <Spinner className="mr-2 h-4 w-4" />
                   Memproses...
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="h-4 w-4" />
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
                   Ya, Setujui
                 </>
               )}
@@ -597,77 +642,56 @@ export function AdminView() {
         </DialogContent>
       </Dialog>
 
-      {/* Reject Dialog */}
+      {/* Rejection Dialog */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-destructive" />
+            <DialogTitle className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-xl bg-destructive/15 flex items-center justify-center">
+                <XCircle className="h-6 w-6 text-destructive" />
+              </div>
               Tolak Pendaftaran UMKM
             </DialogTitle>
             <DialogDescription>
-              Berikan alasan penolakan untuk UMKM ini
+              Berikan alasan penolakan untuk "{rejectingUMKM?.name}"
             </DialogDescription>
           </DialogHeader>
-          
-          {rejectingUMKM && (
-            <div className="space-y-4">
-              <div className="bg-muted/30 rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Store className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground">{rejectingUMKM.name}</p>
-                    <p className="text-sm text-muted-foreground">Pemilik: {rejectingUMKM.owner}</p>
-                  </div>
-                </div>
-              </div>
 
-              <FieldGroup>
-                <Field>
-                  <FieldLabel>Alasan Penolakan <span className="text-destructive">*</span></FieldLabel>
-                  <Textarea
-                    placeholder="Contoh: Dokumen tidak lengkap, lokasi tidak sesuai, dll."
-                    value={rejectionReason}
-                    onChange={(e) => {
-                      setRejectionReason(e.target.value)
-                      if (rejectionError) setRejectionError("")
-                    }}
-                    className={rejectionError ? "border-destructive" : ""}
-                    rows={4}
-                  />
-                  {rejectionError && <FieldError>{rejectionError}</FieldError>}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Minimal 10 karakter. Alasan ini akan dikirimkan ke pemilik UMKM.
-                  </p>
-                </Field>
-              </FieldGroup>
-            </div>
-          )}
+          <Field data-invalid={!!rejectionError}>
+            <FieldLabel htmlFor="rejection-reason">Alasan Penolakan</FieldLabel>
+            <Textarea
+              id="rejection-reason"
+              placeholder="Jelaskan alasan penolakan pendaftaran UMKM ini (minimal 10 karakter)..."
+              value={rejectionReason}
+              onChange={(e) => {
+                setRejectionReason(e.target.value)
+                if (rejectionError) setRejectionError("")
+              }}
+              className={`rounded-xl min-h-[100px] ${rejectionError ? "border-destructive" : ""}`}
+            />
+            {rejectionError && (
+              <FieldError>
+                <span className="flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {rejectionError}
+                </span>
+              </FieldError>
+            )}
+          </Field>
 
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setRejectDialogOpen(false)}
-              disabled={isProcessing}
-            >
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)} disabled={isProcessing} className="rounded-xl">
               Batal
             </Button>
-            <Button 
-              variant="destructive"
-              onClick={handleReject}
-              disabled={isProcessing}
-              className="gap-2"
-            >
+            <Button variant="destructive" onClick={handleReject} disabled={isProcessing} className="rounded-xl">
               {isProcessing ? (
                 <>
-                  <Spinner className="h-4 w-4" />
+                  <Spinner className="mr-2 h-4 w-4" />
                   Memproses...
                 </>
               ) : (
                 <>
-                  <XCircle className="h-4 w-4" />
+                  <XCircle className="h-4 w-4 mr-2" />
                   Tolak Pendaftaran
                 </>
               )}
