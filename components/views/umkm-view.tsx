@@ -64,7 +64,7 @@ const sidebarItems = [
 ]
 
 export function UMKMView() {
-  const { approvedUMKMs, orders, updateMenuItem, deleteMenuItem } = useData()
+  const { approvedUMKMs, orders, updateMenuItem, deleteMenuItem, updateOrderStatus } = useData()
   
   // Simulate logged in UMKM - using first approved UMKM
   const currentUMKM = approvedUMKMs[0]
@@ -469,7 +469,10 @@ export function UMKMView() {
                         Anda memiliki {newOrdersCount} pesanan baru yang perlu diproses
                       </p>
                     </div>
-                    <Button className="rounded-xl shadow-md bg-success hover:bg-success/90 text-success-foreground">
+                    <Button 
+                    onClick={() => setActiveSection("orders")}
+                    className="rounded-xl shadow-md bg-success hover:bg-success/90 text-success-foreground"
+                  >
                       Lihat Pesanan
                     </Button>
                   </div>
@@ -478,6 +481,8 @@ export function UMKMView() {
             </motion.div>
           )}
 
+          {/* Conditional Content - Menu or Orders */}
+          {activeSection === "menu" ? (
           {/* Menu Management Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -598,6 +603,102 @@ export function UMKMView() {
             <Plus className="h-6 w-6" />
           </Button>
         </motion.div>
+          ) : (
+          /* Orders Section */
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="rounded-2xl border-0 shadow-xl">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl font-bold flex items-center gap-2">
+                      <ClipboardList className="h-6 w-6 text-primary" />
+                      Daftar Pesanan
+                    </CardTitle>
+                    <CardDescription>
+                      {umkmOrders.length} pesanan dari pelanggan
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {umkmOrders.length === 0 ? (
+                  <div className="text-center py-12">
+                    <ShoppingBag className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                    <p className="text-muted-foreground font-medium">Belum ada pesanan</p>
+                    <p className="text-sm text-muted-foreground/60">Pesanan pelanggan akan ditampilkan di sini</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {umkmOrders.map((order) => (
+                      <Card key={order.id} className="p-4 border border-border/50 hover:border-primary/30 transition-colors rounded-xl">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 className="font-semibold">{order.menuItem.name}</h4>
+                              <Badge variant="outline" className="text-xs">
+                                {order.quantity}x
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-3">
+                              <span className="font-medium">Pelanggan:</span> {order.customerName}
+                            </p>
+                            <div className="flex items-center gap-4 flex-wrap text-sm">
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Clock className="h-4 w-4" />
+                                {new Date(order.pickupTime).toLocaleString("id-ID")}
+                              </div>
+                              <div className="font-semibold text-primary">
+                                {formatPrice(order.totalPrice)}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2 items-end">
+                            <Badge 
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                order.status === "pending" ? "bg-warning/20 text-warning border-warning/30" :
+                                order.status === "confirmed" ? "bg-info/20 text-info border-info/30" :
+                                order.status === "ready" ? "bg-success/20 text-success border-success/30" :
+                                "bg-muted text-muted-foreground border-muted"
+                              }`}
+                            >
+                              {order.status === "pending" ? "Menunggu" :
+                               order.status === "confirmed" ? "Dikonfirmasi" :
+                               order.status === "ready" ? "Siap Diambil" :
+                               "Selesai"}
+                            </Badge>
+                            {order.status !== "completed" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="rounded-lg text-xs"
+                                onClick={() => {
+                                  const nextStatus = 
+                                    order.status === "pending" ? "confirmed" :
+                                    order.status === "confirmed" ? "ready" :
+                                    "completed"
+                                  updateOrderStatus(order.id, nextStatus)
+                                  toast.success("Status pesanan diperbarui")
+                                }}
+                              >
+                                {order.status === "pending" ? "Konfirmasi" :
+                                 order.status === "confirmed" ? "Siap" :
+                                 "Selesai"}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+          )}
       </main>
 
       {/* Edit Menu Dialog */}

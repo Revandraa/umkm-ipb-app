@@ -299,6 +299,3 @@ export function AdminUMKMDetailModal({
     </Dialog>
   )
 }
-
-// Import React untuk useState
-import React
