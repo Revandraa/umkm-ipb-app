@@ -34,6 +34,7 @@ export interface UMKM {
   isApproved: boolean
   isPending: boolean
   createdAt: string
+  image: string
   menu: MenuItem[]
 }
 
@@ -48,6 +49,7 @@ export const mockUMKMs: UMKM[] = [
     isApproved: true,
     isPending: false,
     createdAt: "2024-01-15",
+    image: "/stores/warung-nasi-bakar.jpg",
     menu: [
       {
         id: "m1",
@@ -91,6 +93,7 @@ export const mockUMKMs: UMKM[] = [
     isApproved: true,
     isPending: false,
     createdAt: "2024-02-20",
+    image: "/stores/mie-ayam-pak-joko.jpg",
     menu: [
       {
         id: "m4",
@@ -134,6 +137,7 @@ export const mockUMKMs: UMKM[] = [
     isApproved: true,
     isPending: false,
     createdAt: "2024-03-10",
+    image: "/stores/sate-kambing-madura.jpg",
     menu: [
       {
         id: "m7",
@@ -177,6 +181,7 @@ export const mockUMKMs: UMKM[] = [
     isApproved: true,
     isPending: false,
     createdAt: "2024-04-05",
+    image: "/stores/kedai-kopi.jpg",
     menu: [
       {
         id: "m10",
@@ -223,6 +228,7 @@ export const pendingUMKMs: UMKM[] = [
     isApproved: false,
     isPending: true,
     createdAt: "2024-12-01",
+    image: "/stores/ayam-geprek.jpg",
     menu: [
       {
         id: "m13",
@@ -246,6 +252,7 @@ export const pendingUMKMs: UMKM[] = [
     isApproved: false,
     isPending: true,
     createdAt: "2024-12-05",
+    image: "/stores/juice-corner.jpg",
     menu: [
       {
         id: "m14",
@@ -269,6 +276,7 @@ export const pendingUMKMs: UMKM[] = [
     isApproved: false,
     isPending: true,
     createdAt: "2024-12-08",
+    image: "/stores/martabak-mini.jpg",
     menu: [
       {
         id: "m15",

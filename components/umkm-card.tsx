@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Star, Store, ChevronRight, Utensils } from "lucide-react"
+import Image from "next/image"
 import type { UMKM } from "@/lib/mock-data"
 
 interface UMKMCardProps {
@@ -25,12 +26,14 @@ export function UMKMCard({ umkm, onClick, isSelected }: UMKMCardProps) {
       onClick={onClick}
     >
       {/* Header Image Area */}
-      <div className="aspect-[16/9] bg-gradient-to-br from-primary/15 via-primary/10 to-secondary relative overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="h-16 w-16 rounded-2xl bg-card/90 backdrop-blur flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500">
-            <Store className="h-8 w-8 text-primary" />
-          </div>
-        </div>
+      <div className="aspect-[16/9] relative overflow-hidden bg-muted">
+        <Image
+          src={umkm.image}
+          alt={umkm.name}
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
+        />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
         
         {/* Rating Badge */}
         {umkm.rating > 0 && (

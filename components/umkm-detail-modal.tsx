@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Star, MapPin, Store, ShoppingBag, X } from "lucide-react"
+import Image from "next/image"
 import type { UMKM, MenuItem } from "@/lib/mock-data"
 import { formatPrice } from "@/lib/mock-data"
 
@@ -54,9 +55,15 @@ export function UMKMDetailModal({ umkm, isOpen, onClose, onSelectMenuItem }: UMK
               </div>
             </div>
 
-            {/* Store Icon */}
-            <div className="h-16 w-16 rounded-2xl bg-primary/15 flex items-center justify-center shrink-0">
-              <Store className="h-8 w-8 text-primary" />
+            {/* Store Image */}
+            <div className="h-24 w-24 rounded-2xl bg-muted overflow-hidden shrink-0 shadow-md">
+              <Image
+                src={umkm.image}
+                alt={umkm.name}
+                width={96}
+                height={96}
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>

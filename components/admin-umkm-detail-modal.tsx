@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { motion } from "framer-motion"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Card, CardContent } from "@/components/ui/card"
@@ -7,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import Image from "next/image"
 import { 
   Star, 
   MapPin, 
@@ -87,8 +89,14 @@ export function AdminUMKMDetailModal({
                     )}
                   </div>
                 </div>
-                <div className="h-16 w-16 rounded-2xl bg-primary/15 flex items-center justify-center shrink-0">
-                  <Store className="h-8 w-8 text-primary" />
+                <div className="h-24 w-24 rounded-2xl bg-muted overflow-hidden shrink-0 shadow-md">
+                  <Image
+                    src={umkm.image}
+                    alt={umkm.name}
+                    width={96}
+                    height={96}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </div>
             </div>
