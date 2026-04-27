@@ -697,166 +697,165 @@ export function UMKMView() {
             </motion.div>
           )}
         </main>
-
-        {/* Edit Menu Dialog */}
-          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-            <DialogContent className="max-w-md rounded-2xl">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Edit2 className="h-5 w-5 text-primary" />
-                </div>
-                Edit Menu
-              </DialogTitle>
-              <DialogDescription>
-                Ubah informasi menu di bawah ini
-              </DialogDescription>
-            </DialogHeader>
-
-            <FieldGroup>
-              <Field data-invalid={!!formErrors.name}>
-                <FieldLabel htmlFor="edit-name">Nama Menu</FieldLabel>
-                <Input
-                  id="edit-name"
-                  placeholder="Masukkan nama menu"
-                  value={formData.name}
-                  onChange={(e) => {
-                    setFormData(prev => ({ ...prev, name: e.target.value }))
-                    if (formErrors.name) setFormErrors(prev => ({ ...prev, name: undefined }))
-                  }}
-                  className={`rounded-xl h-11 ${formErrors.name ? "border-destructive" : ""}`}
-                />
-                {formErrors.name && (
-                  <FieldError>
-                    <span className="flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {formErrors.name}
-                    </span>
-                  </FieldError>
-                )}
-              </Field>
-
-              <Field data-invalid={!!formErrors.price}>
-                <FieldLabel htmlFor="edit-price">Harga (Rp)</FieldLabel>
-                <Input
-                  id="edit-price"
-                  type="number"
-                  placeholder="Masukkan harga"
-                  value={formData.price}
-                  onChange={(e) => {
-                    setFormData(prev => ({ ...prev, price: e.target.value }))
-                    if (formErrors.price) setFormErrors(prev => ({ ...prev, price: undefined }))
-                  }}
-                  className={`rounded-xl h-11 ${formErrors.price ? "border-destructive" : ""}`}
-                />
-                {formErrors.price && (
-                  <FieldError>
-                    <span className="flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {formErrors.price}
-                    </span>
-                  </FieldError>
-                )}
-              </Field>
-
-              <Field data-invalid={!!formErrors.stock}>
-                <FieldLabel htmlFor="edit-stock">Stok</FieldLabel>
-                <Input
-                  id="edit-stock"
-                  type="number"
-                  placeholder="Masukkan jumlah stok"
-                  value={formData.stock}
-                  onChange={(e) => {
-                    setFormData(prev => ({ ...prev, stock: e.target.value }))
-                    if (formErrors.stock) setFormErrors(prev => ({ ...prev, stock: undefined }))
-                  }}
-                  className={`rounded-xl h-11 ${formErrors.stock ? "border-destructive" : ""}`}
-                />
-                {formErrors.stock && (
-                  <FieldError>
-                    <span className="flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {formErrors.stock}
-                    </span>
-                  </FieldError>
-                )}
-              </Field>
-
-              <Field data-invalid={!!formErrors.description}>
-                <FieldLabel htmlFor="edit-description">Deskripsi</FieldLabel>
-                <Textarea
-                  id="edit-description"
-                  placeholder="Masukkan deskripsi menu"
-                  value={formData.description}
-                  onChange={(e) => {
-                    setFormData(prev => ({ ...prev, description: e.target.value }))
-                    if (formErrors.description) setFormErrors(prev => ({ ...prev, description: undefined }))
-                  }}
-                  className={`rounded-xl ${formErrors.description ? "border-destructive" : ""}`}
-                  rows={3}
-                />
-                {formErrors.description && (
-                  <FieldError>
-                    <span className="flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {formErrors.description}
-                    </span>
-                  </FieldError>
-                )}
-              </Field>
-            </FieldGroup>
-
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="rounded-xl">
-                Batal
-              </Button>
-              <Button onClick={handleSubmit} disabled={isSubmitting} className="rounded-xl">
-                {isSubmitting ? (
-                  <>
-                    <Spinner className="mr-2 h-4 w-4" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  "Simpan Perubahan"
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Confirmation Dialog */}
-        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent className="max-w-sm rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <div className="h-10 w-10 rounded-xl bg-destructive/10 flex items-center justify-center">
-                  <Trash2 className="h-5 w-5 text-destructive" />
-                </div>
-                Hapus Menu
-              </DialogTitle>
-              <DialogDescription>
-                Apakah Anda yakin ingin menghapus menu "{deletingItem?.name}"? 
-                Tindakan ini tidak dapat dibatalkan.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="rounded-xl">
-                Batal
-              </Button>
-              <Button variant="destructive" onClick={handleDelete} className="rounded-xl">
-                Hapus Menu
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Add Menu Dialog */}
-        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+      {/* Edit Menu Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent className="max-w-md rounded-2xl">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Plus className="h-5 w-5 text-primary" />
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Edit2 className="h-5 w-5 text-primary" />
+              </div>
+              Edit Menu
+            </DialogTitle>
+            <DialogDescription>
+              Ubah informasi menu di bawah ini
+            </DialogDescription>
+          </DialogHeader>
+
+          <FieldGroup>
+            <Field data-invalid={!!formErrors.name}>
+              <FieldLabel htmlFor="edit-name">Nama Menu</FieldLabel>
+              <Input
+                id="edit-name"
+                placeholder="Masukkan nama menu"
+                value={formData.name}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, name: e.target.value }))
+                  if (formErrors.name) setFormErrors(prev => ({ ...prev, name: undefined }))
+                }}
+                className={`rounded-xl h-11 ${formErrors.name ? "border-destructive" : ""}`}
+              />
+              {formErrors.name && (
+                <FieldError>
+                  <span className="flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {formErrors.name}
+                  </span>
+                </FieldError>
+              )}
+            </Field>
+
+            <Field data-invalid={!!formErrors.price}>
+              <FieldLabel htmlFor="edit-price">Harga (Rp)</FieldLabel>
+              <Input
+                id="edit-price"
+                type="number"
+                placeholder="Masukkan harga"
+                value={formData.price}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, price: e.target.value }))
+                  if (formErrors.price) setFormErrors(prev => ({ ...prev, price: undefined }))
+                }}
+                className={`rounded-xl h-11 ${formErrors.price ? "border-destructive" : ""}`}
+              />
+              {formErrors.price && (
+                <FieldError>
+                  <span className="flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {formErrors.price}
+                  </span>
+                </FieldError>
+              )}
+            </Field>
+
+            <Field data-invalid={!!formErrors.stock}>
+              <FieldLabel htmlFor="edit-stock">Stok</FieldLabel>
+              <Input
+                id="edit-stock"
+                type="number"
+                placeholder="Masukkan jumlah stok"
+                value={formData.stock}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, stock: e.target.value }))
+                  if (formErrors.stock) setFormErrors(prev => ({ ...prev, stock: undefined }))
+                }}
+                className={`rounded-xl h-11 ${formErrors.stock ? "border-destructive" : ""}`}
+              />
+              {formErrors.stock && (
+                <FieldError>
+                  <span className="flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {formErrors.stock}
+                  </span>
+                </FieldError>
+              )}
+            </Field>
+
+            <Field data-invalid={!!formErrors.description}>
+              <FieldLabel htmlFor="edit-description">Deskripsi</FieldLabel>
+              <Textarea
+                id="edit-description"
+                placeholder="Masukkan deskripsi menu"
+                value={formData.description}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, description: e.target.value }))
+                  if (formErrors.description) setFormErrors(prev => ({ ...prev, description: undefined }))
+                }}
+                className={`rounded-xl ${formErrors.description ? "border-destructive" : ""}`}
+                rows={3}
+              />
+              {formErrors.description && (
+                <FieldError>
+                  <span className="flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {formErrors.description}
+                  </span>
+                </FieldError>
+              )}
+            </Field>
+          </FieldGroup>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="rounded-xl">
+              Batal
+            </Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting} className="rounded-xl">
+              {isSubmitting ? (
+                <>
+                  <Spinner className="mr-2 h-4 w-4" />
+                  Menyimpan...
+                </>
+              ) : (
+                "Simpan Perubahan"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="h-10 w-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+                <Trash2 className="h-5 w-5 text-destructive" />
+              </div>
+              Hapus Menu
+            </DialogTitle>
+            <DialogDescription>
+              Apakah Anda yakin ingin menghapus menu "{deletingItem?.name}"? 
+              Tindakan ini tidak dapat dibatalkan.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="rounded-xl">
+              Batal
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} className="rounded-xl">
+              Hapus Menu
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Menu Dialog */}
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Plus className="h-5 w-5 text-primary" />
               </div>
               Tambah Menu Baru
             </DialogTitle>
