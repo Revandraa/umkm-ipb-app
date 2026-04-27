@@ -16,9 +16,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Search, Store, Utensils, AlertCircle, ShoppingCart, MapPin, Star, Clock } from "lucide-react"
-import { formatPrice, kantinLocations, type MenuItem } from "@/lib/mock-data"
+import { formatPrice, kantinLocations, type MenuItem, type UMKM } from "@/lib/mock-data"
 import { useData, type Order } from "@/lib/data-context"
 import { OrderForm, OrderSuccess } from "@/components/order-form"
+import { UMKMDetailModal } from "@/components/umkm-detail-modal"
 
 interface ExtendedMenuItem extends MenuItem {
   vendorName: string
@@ -60,6 +61,8 @@ export function MahasiswaView() {
   const [viewState, setViewState] = useState<ViewState>("browse")
   const [selectedItem, setSelectedItem] = useState<ExtendedMenuItem | null>(null)
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null)
+  const [detailUMKM, setDetailUMKM] = useState<UMKM | null>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   
   const allMenuItems: ExtendedMenuItem[] = approvedUMKMs.flatMap((umkm) =>
     umkm.menu.map((item) => ({ 
@@ -106,8 +109,25 @@ export function MahasiswaView() {
     setViewState("browse")
   }
 
+  const handleOpenUMKMDetail = (umkm: UMKM) => {
+    setDetailUMKM(umkm)
+    setIsDetailModalOpen(true)
+  }
+
+  const handleSelectMenuFromModal = (item: MenuItem & { vendorName: string; vendorId: string }) => {
+    setIsDetailModalOpen(false)
+    setSelectedItem(item as ExtendedMenuItem)
+    setViewState("order")
+  }
+
   return (
     <div className="min-h-screen bg-background">
+      <UMKMDetailModal 
+        umkm={detailUMKM}
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        onSelectMenuItem={handleSelectMenuFromModal}
+      />
       <AnimatePresence mode="wait">
         {viewState === "browse" && (
           <motion.div
@@ -167,7 +187,7 @@ export function MahasiswaView() {
                     <motion.div key={umkm.id} variants={itemVariants}>
                       <UMKMCard 
                         umkm={umkm}
-                        onClick={() => setSelectedUMKM(selectedUMKM === umkm.id ? null : umkm.id)}
+                        onClick={() => handleOpenUMKMDetail(umkm)}
                         isSelected={selectedUMKM === umkm.id}
                       />
                     </motion.div>

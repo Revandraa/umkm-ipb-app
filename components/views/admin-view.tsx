@@ -42,6 +42,7 @@ import { formatPrice } from "@/lib/mock-data"
 import type { UMKM } from "@/lib/mock-data"
 import { useData } from "@/lib/data-context"
 import { toast } from "sonner"
+import { AdminUMKMDetailModal } from "@/components/admin-umkm-detail-modal"
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -66,6 +67,10 @@ export function AdminView() {
   const [selectedUMKM, setSelectedUMKM] = useState<UMKM | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   
+  // Detail Modal State
+  const [detailUMKM, setDetailUMKM] = useState<UMKM | null>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  
   // Rejection Modal State
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
   const [rejectingUMKM, setRejectingUMKM] = useState<UMKM | null>(null)
@@ -79,6 +84,35 @@ export function AdminView() {
 
   const approvedCount = approvedUMKMs.length
   const pendingCount = pendingUMKMs.length
+
+  const openDetailModal = (umkm: UMKM) => {
+    setDetailUMKM(umkm)
+    setIsDetailModalOpen(true)
+  }
+
+  const handleApproveFromModal = (umkm: UMKM) => {
+    setIsDetailModalOpen(false)
+    setDetailUMKM(null)
+    setApprovingUMKM(umkm)
+    setApproveDialogOpen(true)
+  }
+
+  const handleRejectFromModal = (umkm: UMKM, reason: string) => {
+    setIsDetailModalOpen(false)
+    setDetailUMKM(null)
+    setRejectingUMKM(umkm)
+    setRejectionReason(reason)
+    
+    // Directly process rejection
+    setIsProcessing(true)
+    setTimeout(() => {
+      rejectUMKM(umkm.id)
+      setIsProcessing(false)
+      toast.success("Pendaftaran UMKM Ditolak", {
+        description: `"${umkm.name}" telah ditolak. Notifikasi akan dikirim ke pemilik.`,
+      })
+    }, 1000)
+  }
 
   const openApproveDialog = (umkm: UMKM) => {
     setApprovingUMKM(umkm)
@@ -155,6 +189,15 @@ export function AdminView() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/3 to-background">
+      <AdminUMKMDetailModal
+        umkm={detailUMKM}
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        onApprove={handleApproveFromModal}
+        onReject={handleRejectFromModal}
+        isProcessing={isProcessing}
+      />
+      
       {/* Dashboard Header */}
       <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b border-border">
         <div className="container mx-auto px-4 py-8">
@@ -336,7 +379,7 @@ export function AdminView() {
                               variant="outline"
                               size="sm"
                               className="flex-1 rounded-xl gap-1"
-                              onClick={() => setSelectedUMKM(umkm)}
+                              onClick={() => openDetailModal(umkm)}
                             >
                               <Eye className="h-4 w-4" />
                               Detail
