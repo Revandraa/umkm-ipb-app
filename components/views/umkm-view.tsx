@@ -483,24 +483,23 @@ export function UMKMView() {
 
           {/* Conditional Content - Menu or Orders */}
           {activeSection === "menu" ? (
-          {/* Menu Management Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card className="rounded-2xl border-0 shadow-xl" id="kelola">
-              <CardHeader className="pb-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div>
-                    <CardTitle className="text-xl font-bold">Kelola Menu</CardTitle>
-                    <CardDescription>Atur menu makanan dan minuman Anda</CardDescription>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Card className="rounded-2xl border-0 shadow-xl" id="kelola">
+                <CardHeader className="pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-xl font-bold">Kelola Menu</CardTitle>
+                      <CardDescription>Atur menu makanan dan minuman Anda</CardDescription>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {/* Search */}
-                <div className="relative max-w-md mb-6">
+                </CardHeader>
+                <CardContent>
+                  {/* Search */}
+                  <div className="relative max-w-md mb-6">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
                     placeholder="Cari menu..."
@@ -508,18 +507,18 @@ export function UMKMView() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
-                </div>
+                  </div>
 
-                {/* Menu Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {filteredItems.map((item) => (
-                    <motion.div
-                      key={item.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="group"
-                    >
+                  {/* Menu Cards Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {filteredItems.map((item) => (
+                      <motion.div
+                        key={item.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="group"
+                      >
                       <Card className="overflow-hidden rounded-2xl border border-border/50 hover:border-primary/30 hover:shadow-lg transition-all">
                         <div className="aspect-video bg-gradient-to-br from-primary/10 via-secondary to-muted relative">
                           <div className="absolute inset-0 flex items-center justify-center">
@@ -574,67 +573,65 @@ export function UMKMView() {
                           </div>
                         </CardContent>
                       </Card>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {filteredItems.length === 0 && (
-                  <div className="text-center py-12 border-2 border-dashed border-border rounded-2xl">
-                    <p className="text-muted-foreground">Tidak ada menu yang ditemukan</p>
+                      </motion.div>
+                    ))}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
 
-        {/* Floating Action Button */}
-        <motion.div
-          className="fixed bottom-6 right-6 z-50"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", delay: 0.5 }}
-        >
-          <Button
-            size="lg"
-            className="h-14 w-14 rounded-full shadow-2xl hover:shadow-primary/40 hover:scale-110 transition-all"
-            onClick={() => setAddDialogOpen(true)}
-          >
-            <Plus className="h-6 w-6" />
-          </Button>
-        </motion.div>
+                  {filteredItems.length === 0 && (
+                    <div className="text-center py-12 border-2 border-dashed border-border rounded-2xl">
+                      <p className="text-muted-foreground">Tidak ada menu yang ditemukan</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              {/* Floating Action Button */}
+              <motion.div
+                className="fixed bottom-6 right-6 z-50"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", delay: 0.5 }}
+              >
+                <Button
+                  size="lg"
+                  className="h-14 w-14 rounded-full shadow-2xl hover:shadow-primary/40 hover:scale-110 transition-all"
+                  onClick={() => setAddDialogOpen(true)}
+                >
+                  <Plus className="h-6 w-6" />
+                </Button>
+              </motion.div>
+            </motion.div>
           ) : (
-          /* Orders Section */
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card className="rounded-2xl border-0 shadow-xl">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-xl font-bold flex items-center gap-2">
-                      <ClipboardList className="h-6 w-6 text-primary" />
-                      Daftar Pesanan
-                    </CardTitle>
-                    <CardDescription>
-                      {umkmOrders.length} pesanan dari pelanggan
-                    </CardDescription>
+            /* Orders Section */
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Card className="rounded-2xl border-0 shadow-xl">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-xl font-bold flex items-center gap-2">
+                        <ClipboardList className="h-6 w-6 text-primary" />
+                        Daftar Pesanan
+                      </CardTitle>
+                      <CardDescription>
+                        {umkmOrders.length} pesanan dari pelanggan
+                      </CardDescription>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {umkmOrders.length === 0 ? (
-                  <div className="text-center py-12">
-                    <ShoppingBag className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-                    <p className="text-muted-foreground font-medium">Belum ada pesanan</p>
-                    <p className="text-sm text-muted-foreground/60">Pesanan pelanggan akan ditampilkan di sini</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {umkmOrders.map((order) => (
-                      <Card key={order.id} className="p-4 border border-border/50 hover:border-primary/30 transition-colors rounded-xl">
+                </CardHeader>
+                <CardContent>
+                  {umkmOrders.length === 0 ? (
+                    <div className="text-center py-12">
+                      <ShoppingBag className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+                      <p className="text-muted-foreground font-medium">Belum ada pesanan</p>
+                      <p className="text-sm text-muted-foreground/60">Pesanan pelanggan akan ditampilkan di sini</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {umkmOrders.map((order) => (
+                        <Card key={order.id} className="p-4 border border-border/50 hover:border-primary/30 transition-colors rounded-xl">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
@@ -692,12 +689,12 @@ export function UMKMView() {
                           </div>
                         </div>
                       </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
           )}
       </main>
 
