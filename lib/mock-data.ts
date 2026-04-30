@@ -1,4 +1,4 @@
-export type Role = "mahasiswa" | "umkm" | "admin"
+export type Role = "mahasiswa" | "umkm" | "umkm-register" | "admin"
 
 export const kantinLocations = [
   { id: "all", name: "Semua Kantin" },
