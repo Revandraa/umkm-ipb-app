@@ -1,13 +1,7 @@
-"use client"
-
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { ArrowRight, Utensils, Users, TrendingUp, MapPin } from "lucide-react"
+import { Utensils, Users, TrendingUp, MapPin } from "lucide-react"
 import Image from "next/image"
-import { useRole } from "@/lib/role-context"
 
 export function LandingHero() {
-  const { setRole } = useRole()
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-primary/8 via-primary/3 to-background">
@@ -43,17 +37,7 @@ export function LandingHero() {
             Temukan, pesan, dan dukung UMKM kampus dengan mudah.
           </p>
           
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <Button 
-              size="lg" 
-              onClick={() => setRole("umkm-register")}
-              className="gap-2 h-12 px-8 text-base rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all"
-            >
-              Daftar sebagai UMKM
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
+
           
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
