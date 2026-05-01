@@ -17,11 +17,15 @@ export interface Order {
 interface DataContextType {
   approvedUMKMs: UMKM[]
   pendingUMKMs: UMKM[]
+  suspendedUMKMs: UMKM[]
   orders: Order[]
   approveUMKM: (umkmId: string) => void
   rejectUMKM: (umkmId: string) => void
+  suspendUMKM: (umkmId: string, reason: string) => void
+  reactivateUMKM: (umkmId: string) => void
   updateMenuItem: (umkmId: string, menuItemId: string, updates: Partial<MenuItem>) => void
   deleteMenuItem: (umkmId: string, menuItemId: string) => void
+  addMenuItem: (umkmId: string, menuItem: Omit<MenuItem, "id">) => void
   addOrder: (order: Omit<Order, "id" | "createdAt" | "status">) => Order
   updateOrderStatus: (orderId: string, status: Order["status"]) => void
   updateMenuStock: (vendorId: string, menuItemId: string, quantity: number) => void
@@ -32,6 +36,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined)
 export function DataProvider({ children }: { children: ReactNode }) {
   const [approvedUMKMs, setApprovedUMKMs] = useState<UMKM[]>(mockUMKMs.filter(u => u.isApproved))
   const [pending, setPending] = useState<UMKM[]>(pendingUMKMs)
+  const [suspendedUMKMs, setSuspendedUMKMs] = useState<UMKM[]>([])
   const [orders, setOrders] = useState<Order[]>([])
 
   const approveUMKM = (umkmId: string) => {
@@ -50,6 +55,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const rejectUMKM = (umkmId: string) => {
     setPending(items => items.filter(item => item.id !== umkmId))
+  }
+
+  const suspendUMKM = (umkmId: string, reason: string) => {
+    const umkm = approvedUMKMs.find(u => u.id === umkmId)
+    if (umkm) {
+      const suspendedUMKM: UMKM = {
+        ...umkm,
+        isApproved: false,
+        suspensionReason: reason,
+        suspendedAt: new Date().toISOString(),
+      }
+      setApprovedUMKMs(items => items.filter(item => item.id !== umkmId))
+      setSuspendedUMKMs(items => [...items, suspendedUMKM])
+    }
+  }
+
+  const reactivateUMKM = (umkmId: string) => {
+    const umkm = suspendedUMKMs.find(u => u.id === umkmId)
+    if (umkm) {
+      const reactivatedUMKM: UMKM = {
+        ...umkm,
+        isApproved: true,
+        suspensionReason: undefined,
+        suspendedAt: undefined,
+      }
+      setSuspendedUMKMs(items => items.filter(item => item.id !== umkmId))
+      setApprovedUMKMs(items => [...items, reactivatedUMKM])
+    }
   }
 
   const updateMenuItem = (umkmId: string, menuItemId: string, updates: Partial<MenuItem>) => {
@@ -75,6 +108,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
           return {
             ...umkm,
             menu: umkm.menu.filter(item => item.id !== menuItemId)
+          }
+        }
+        return umkm
+      })
+    )
+  }
+
+  const addMenuItem = (umkmId: string, menuItem: Omit<MenuItem, "id">) => {
+    setApprovedUMKMs(umkms => 
+      umkms.map(umkm => {
+        if (umkm.id === umkmId) {
+          const newItem: MenuItem = {
+            ...menuItem,
+            id: `menu-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          }
+          return {
+            ...umkm,
+            menu: [...umkm.menu, newItem]
           }
         }
         return umkm
@@ -133,11 +184,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     <DataContext.Provider value={{ 
       approvedUMKMs, 
       pendingUMKMs: pending,
+      suspendedUMKMs,
       orders,
       approveUMKM, 
       rejectUMKM,
+      suspendUMKM,
+      reactivateUMKM,
       updateMenuItem,
       deleteMenuItem,
+      addMenuItem,
       addOrder,
       updateOrderStatus,
       updateMenuStock
