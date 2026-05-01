@@ -1,4 +1,4 @@
-export type Role = "mahasiswa" | "umkm" | "admin"
+export type Role = "mahasiswa" | "umkm" | "umkm-register" | "admin"
 
 export const kantinLocations = [
   { id: "all", name: "Semua Kantin" },
@@ -36,6 +36,8 @@ export interface UMKM {
   createdAt: string
   image: string
   menu: MenuItem[]
+  suspensionReason?: string
+  suspendedAt?: string
 }
 
 export const mockUMKMs: UMKM[] = [

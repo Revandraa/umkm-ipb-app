@@ -56,7 +56,7 @@ export function LandingHero() {
             <Button 
               size="lg" 
               variant="outline" 
-              onClick={() => setRole("umkm")}
+              onClick={() => setRole("umkm-register")}
               className="h-12 px-8 text-base rounded-xl border-2 hover:bg-primary/5"
             >
               Daftar sebagai UMKM

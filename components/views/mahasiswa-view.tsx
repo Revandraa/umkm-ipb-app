@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { LandingHero } from "@/components/landing-hero"
 import { UMKMCard } from "@/components/umkm-card"
@@ -374,12 +375,14 @@ function MenuCard({ item, onOrderClick }: MenuCardProps) {
   return (
     <Card className={`group overflow-hidden transition-all duration-300 rounded-2xl border-0 shadow-md hover:shadow-xl ${isOutOfStock ? "opacity-60" : "hover:-translate-y-1"}`}>
       {/* Image Area */}
-      <div className="aspect-[4/3] bg-gradient-to-br from-primary/10 via-secondary to-muted relative overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-6xl group-hover:scale-110 transition-transform duration-500">
-            {item.category === "Minuman" ? "🥤" : item.category === "Makanan Ringan" ? "🍪" : "🍽️"}
-          </span>
-        </div>
+      <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+        <Image
+          src={item.image}
+          alt={item.name}
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
+        />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
         
         {/* Pre-Order Badge */}
         {item.isAvailable && !isOutOfStock && (

@@ -7,6 +7,7 @@ import { Footer } from "@/components/footer"
 import { MahasiswaView } from "@/components/views/mahasiswa-view"
 import { UMKMView } from "@/components/views/umkm-view"
 import { AdminView } from "@/components/views/admin-view"
+import { UMKMRegistrationView } from "@/components/views/umkm-registration-view"
 
 function MainContent() {
   const { role } = useRole()
@@ -17,6 +18,7 @@ function MainContent() {
       <main>
         {role === "mahasiswa" && <MahasiswaView />}
         {role === "umkm" && <UMKMView />}
+        {role === "umkm-register" && <UMKMRegistrationView />}
         {role === "admin" && <AdminView />}
       </main>
       <Footer />
