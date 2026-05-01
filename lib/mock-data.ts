@@ -36,6 +36,8 @@ export interface UMKM {
   createdAt: string
   image: string
   menu: MenuItem[]
+  suspensionReason?: string
+  suspendedAt?: string
 }
 
 export const mockUMKMs: UMKM[] = [
