@@ -47,19 +47,11 @@ export function LandingHero() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
             <Button 
               size="lg" 
-              onClick={() => setRole("mahasiswa")}
+              onClick={() => setRole("umkm-register")}
               className="gap-2 h-12 px-8 text-base rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all"
             >
-              Jelajahi Menu
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              onClick={() => setRole("umkm-register")}
-              className="h-12 px-8 text-base rounded-xl border-2 hover:bg-primary/5"
-            >
               Daftar sebagai UMKM
+              <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
           
