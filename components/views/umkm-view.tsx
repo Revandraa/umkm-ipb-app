@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useMemo } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,17 +24,19 @@ import {
   FieldError,
   FieldGroup,
 } from "@/components/ui/field"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import { 
   Plus, 
   Edit2, 
   Trash2, 
   Package, 
+  TrendingUp, 
   DollarSign, 
+  ShoppingBag,
   Search,
   Store,
   AlertCircle,
+  WifiOff,
   Bell,
   LayoutDashboard,
   UtensilsCrossed,
@@ -48,65 +50,26 @@ import {
   XCircle,
   User,
   ChefHat,
+  Timer,
   Receipt,
+  Eye,
+  Phone,
+  MapPin,
+  Utensils,
   PlayCircle,
   Check,
-  Ban,
-  RefreshCw,
-  ImageIcon,
-  Loader2
+  Ban
 } from "lucide-react"
 import { formatPrice } from "@/lib/mock-data"
-import { createClient } from "@/lib/supabase/client"
+import type { MenuItem } from "@/lib/mock-data"
+import { useData, type Order } from "@/lib/data-context"
 import { toast } from "sonner"
-
-// Types for Supabase data
-interface UMKMData {
-  id: string
-  owner_name: string
-  business_name: string
-  description: string
-  location: string
-  contact_phone: string
-  contact_email: string
-  business_type: string
-  image_url: string
-  status: string
-  rating: number
-}
-
-interface MenuItemData {
-  id: string
-  umkm_id: string
-  name: string
-  description: string
-  price: number
-  stock: number
-  category: string
-  image_url: string
-  is_available: boolean
-}
-
-interface OrderData {
-  id: string
-  menu_item_id: string
-  umkm_id: string
-  customer_name: string
-  quantity: number
-  total_price: number
-  pickup_time: string
-  status: string
-  created_at: string
-  menu_items?: MenuItemData
-}
 
 interface FormErrors {
   name?: string
   price?: string
   stock?: string
   description?: string
-  category?: string
-  image_url?: string
 }
 
 const sidebarItems = [
@@ -116,387 +79,224 @@ const sidebarItems = [
   { id: "settings", label: "Pengaturan", icon: Settings },
 ]
 
-const menuCategories = [
-  { value: "makanan", label: "Makanan" },
-  { value: "minuman", label: "Minuman" },
-  { value: "snack", label: "Snack" },
-  { value: "dessert", label: "Dessert" },
-  { value: "lainnya", label: "Lainnya" },
-]
-
 type OrderFilter = "all" | "confirmed" | "ready" | "completed"
 
-interface UMKMViewProps {
-  umkmId?: string
-}
-
-export function UMKMView({ umkmId }: UMKMViewProps) {
-  const supabase = createClient()
+export function UMKMView() {
+  const { approvedUMKMs, orders, updateMenuItem, deleteMenuItem, updateOrderStatus } = useData()
   
-  // Data states
-  const [currentUMKM, setCurrentUMKM] = useState<UMKMData | null>(null)
-  const [menuItems, setMenuItems] = useState<MenuItemData[]>([])
-  const [orders, setOrders] = useState<OrderData[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  
-  // UI states
+  // Simulate logged in UMKM - using first approved UMKM
+  const currentUMKM = approvedUMKMs[0]
   const [searchQuery, setSearchQuery] = useState("")
-  const [activeSection, setActiveSection] = useState("menu")
+  const [activeSection, setActiveSection] = useState("orders")
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [orderFilter, setOrderFilter] = useState<OrderFilter>("all")
   const [orderSearchQuery, setOrderSearchQuery] = useState("")
   
   // Edit Modal State
   const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<MenuItemData | null>(null)
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     price: "",
     stock: "",
     description: "",
-    category: "",
-    image_url: "",
   })
   const [formErrors, setFormErrors] = useState<FormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [simulateNetworkError, setSimulateNetworkError] = useState(false)
 
   // Delete Confirmation State
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [deletingItem, setDeletingItem] = useState<MenuItemData | null>(null)
+  const [deletingItem, setDeletingItem] = useState<MenuItem | null>(null)
 
   // Add Menu State
   const [addDialogOpen, setAddDialogOpen] = useState(false)
-  const [addFormData, setAddFormData] = useState({
-    name: "",
-    price: "",
-    stock: "",
-    description: "",
-    category: "",
-    image_url: "/menu/default-food.jpg",
-  })
-  const [addFormErrors, setAddFormErrors] = useState<FormErrors>({})
 
   // Order Detail Modal
-  const [selectedOrder, setSelectedOrder] = useState<OrderData | null>(null)
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [orderDetailOpen, setOrderDetailOpen] = useState(false)
 
-  // Fetch UMKM data
-  const fetchUMKMData = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      // Get the first approved UMKM or specific one if umkmId provided
-      let query = supabase
-        .from("umkm_registrations")
-        .select("*")
-        .eq("status", "approved")
-      
-      if (umkmId) {
-        query = query.eq("id", umkmId)
-      }
-      
-      const { data: umkmData, error: umkmError } = await query.limit(1).single()
-      
-      if (umkmError) {
-        console.error("[v0] Error fetching UMKM:", umkmError)
-        setCurrentUMKM(null)
-        setIsLoading(false)
-        return
-      }
-      
-      setCurrentUMKM(umkmData)
-      
-      // Fetch menu items for this UMKM
-      const { data: menuData, error: menuError } = await supabase
-        .from("menu_items")
-        .select("*")
-        .eq("umkm_id", umkmData.id)
-        .order("created_at", { ascending: false })
-      
-      if (menuError) {
-        console.error("[v0] Error fetching menu items:", menuError)
-      } else {
-        setMenuItems(menuData || [])
-      }
-      
-      // Fetch orders for this UMKM
-      const { data: ordersData, error: ordersError } = await supabase
-        .from("orders")
-        .select("*, menu_items(*)")
-        .eq("umkm_id", umkmData.id)
-        .order("created_at", { ascending: false })
-      
-      if (ordersError) {
-        console.error("[v0] Error fetching orders:", ordersError)
-      } else {
-        setOrders(ordersData || [])
-      }
-    } catch (err) {
-      console.error("[v0] Unexpected error:", err)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [supabase, umkmId])
+  if (!currentUMKM) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-background flex items-center justify-center">
+        <motion.div 
+          className="text-center p-8"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
+            <Store className="h-10 w-10 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Tidak ada UMKM</h2>
+          <p className="text-muted-foreground">Belum ada UMKM yang terverifikasi</p>
+        </motion.div>
+      </div>
+    )
+  }
 
-  useEffect(() => {
-    fetchUMKMData()
-  }, [fetchUMKMData])
-
-  // Filter menu items
+  const menuItems = currentUMKM.menu
   const filteredItems = menuItems.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  // Order statistics
-  const newOrdersCount = orders.filter(o => o.status === "confirmed").length
-  const preparingOrdersCount = orders.filter(o => o.status === "ready").length
-  const completedOrdersCount = orders.filter(o => o.status === "completed").length
-  const totalRevenue = orders
+  // Get orders for this UMKM
+  const umkmOrders = orders.filter(order => order.menuItem.vendorId === currentUMKM.id)
+  const newOrdersCount = umkmOrders.filter(o => o.status === "confirmed").length
+  const preparingOrdersCount = umkmOrders.filter(o => o.status === "ready").length
+  const completedOrdersCount = umkmOrders.filter(o => o.status === "completed").length
+  
+  // Calculate total revenue
+  const totalRevenue = umkmOrders
     .filter(o => o.status === "completed")
-    .reduce((sum, order) => sum + order.total_price, 0)
+    .reduce((sum, order) => sum + order.totalPrice, 0)
 
   // Filter orders
-  const filteredOrders = orders.filter(order => {
+  const filteredOrders = umkmOrders.filter(order => {
     const matchesFilter = orderFilter === "all" || order.status === orderFilter
-    const matchesSearch = order.customer_name.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
-      order.id.toLowerCase().includes(orderSearchQuery.toLowerCase())
+    const matchesSearch = order.customerName.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
+      order.id.toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
+      order.menuItem.name.toLowerCase().includes(orderSearchQuery.toLowerCase())
     return matchesFilter && matchesSearch
+  }).sort((a, b) => {
+    // Sort by status priority: confirmed > ready > completed > pending
+    const statusPriority: Record<string, number> = { confirmed: 0, ready: 1, pending: 2, completed: 3 }
+    const priorityDiff = statusPriority[a.status] - statusPriority[b.status]
+    if (priorityDiff !== 0) return priorityDiff
+    // Then by date (newest first)
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   })
 
-  const totalStock = menuItems.reduce((acc, item) => acc + item.stock, 0)
-  const availableItems = menuItems.filter(item => item.is_available).length
-
-  // Toggle menu availability
-  const toggleAvailability = async (itemId: string) => {
+  const toggleAvailability = (itemId: string) => {
     const item = menuItems.find(m => m.id === itemId)
-    if (!item) return
-
-    const { error } = await supabase
-      .from("menu_items")
-      .update({ is_available: !item.is_available })
-      .eq("id", itemId)
-
-    if (error) {
-      toast.error("Gagal mengubah status menu")
-      return
+    if (item) {
+      updateMenuItem(currentUMKM.id, itemId, { isAvailable: !item.isAvailable })
+      toast.success(`Status menu "${item.name}" berhasil diubah`)
     }
-
-    setMenuItems(prev => 
-      prev.map(m => m.id === itemId ? { ...m, is_available: !m.is_available } : m)
-    )
-    toast.success(`Status menu "${item.name}" berhasil diubah`)
   }
 
-  // Open edit dialog
-  const openEditDialog = (item: MenuItemData) => {
+  const totalStock = menuItems.reduce((acc, item) => acc + item.stock, 0)
+  const availableItems = menuItems.filter(item => item.isAvailable).length
+
+  const openEditDialog = (item: MenuItem) => {
     setEditingItem(item)
     setFormData({
       name: item.name,
       price: item.price.toString(),
       stock: item.stock.toString(),
       description: item.description,
-      category: item.category,
-      image_url: item.image_url,
     })
     setFormErrors({})
     setEditDialogOpen(true)
   }
 
-  // Validate form
-  const validateForm = (data: typeof formData): FormErrors => {
+  const validateForm = (): boolean => {
     const errors: FormErrors = {}
     
-    if (!data.name.trim()) errors.name = "Nama menu wajib diisi"
-    if (!data.price.trim()) {
+    if (!formData.name.trim()) {
+      errors.name = "Nama menu wajib diisi"
+    }
+    
+    if (!formData.price.trim()) {
       errors.price = "Harga wajib diisi"
-    } else if (isNaN(Number(data.price)) || Number(data.price) <= 0) {
+    } else if (isNaN(Number(formData.price)) || Number(formData.price) <= 0) {
       errors.price = "Harga harus berupa angka positif"
     }
-    if (!data.stock.trim()) {
+    
+    if (!formData.stock.trim()) {
       errors.stock = "Stok wajib diisi"
-    } else if (isNaN(Number(data.stock)) || Number(data.stock) < 0) {
+    } else if (isNaN(Number(formData.stock)) || Number(formData.stock) < 0) {
       errors.stock = "Stok harus berupa angka positif atau nol"
     }
-    if (!data.description.trim()) errors.description = "Deskripsi wajib diisi"
-    if (!data.category) errors.category = "Kategori wajib dipilih"
+
+    if (!formData.description.trim()) {
+      errors.description = "Deskripsi wajib diisi"
+    }
     
-    return errors
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
   }
 
-  // Handle edit submit
-  const handleEditSubmit = async () => {
-    const errors = validateForm(formData)
-    setFormErrors(errors)
-    
-    if (Object.keys(errors).length > 0) {
+  const handleSubmit = async () => {
+    if (!validateForm()) {
       toast.error("Mohon perbaiki kesalahan pada form")
       return
     }
 
-    if (!editingItem) return
-
     setIsSubmitting(true)
 
-    const { error } = await supabase
-      .from("menu_items")
-      .update({
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1500))
+
+    // Simulate network error
+    if (simulateNetworkError) {
+      setIsSubmitting(false)
+      toast.error("Koneksi internet tidak stabil", {
+        description: "Silakan coba lagi atau periksa koneksi internet Anda.",
+        icon: <WifiOff className="h-4 w-4" />,
+      })
+      return
+    }
+
+    // Update the menu item
+    if (editingItem) {
+      updateMenuItem(currentUMKM.id, editingItem.id, {
         name: formData.name.trim(),
         price: Number(formData.price),
         stock: Number(formData.stock),
         description: formData.description.trim(),
-        category: formData.category,
-        image_url: formData.image_url || "/menu/default-food.jpg",
       })
-      .eq("id", editingItem.id)
-
-    setIsSubmitting(false)
-
-    if (error) {
-      toast.error("Gagal memperbarui menu", { description: error.message })
-      return
     }
 
-    setMenuItems(prev => 
-      prev.map(item => 
-        item.id === editingItem.id 
-          ? { 
-              ...item, 
-              name: formData.name.trim(),
-              price: Number(formData.price),
-              stock: Number(formData.stock),
-              description: formData.description.trim(),
-              category: formData.category,
-              image_url: formData.image_url || "/menu/default-food.jpg",
-            } 
-          : item
-      )
-    )
-    
+    setIsSubmitting(false)
     setEditDialogOpen(false)
     setEditingItem(null)
-    toast.success("Menu berhasil diperbarui!", { description: `"${formData.name}" telah disimpan.` })
+    toast.success("Menu berhasil diperbarui!", {
+      description: `"${formData.name}" telah disimpan.`,
+    })
   }
 
-  // Handle delete
-  const openDeleteDialog = (item: MenuItemData) => {
+  const openDeleteDialog = (item: MenuItem) => {
     setDeletingItem(item)
     setDeleteDialogOpen(true)
   }
 
-  const handleDelete = async () => {
-    if (!deletingItem) return
-
-    const { error } = await supabase
-      .from("menu_items")
-      .delete()
-      .eq("id", deletingItem.id)
-
-    if (error) {
-      toast.error("Gagal menghapus menu", { description: error.message })
-      return
+  const handleDelete = () => {
+    if (deletingItem) {
+      deleteMenuItem(currentUMKM.id, deletingItem.id)
+      toast.success(`Menu "${deletingItem.name}" berhasil dihapus`)
+      setDeleteDialogOpen(false)
+      setDeletingItem(null)
     }
-
-    setMenuItems(prev => prev.filter(item => item.id !== deletingItem.id))
-    toast.success(`Menu "${deletingItem.name}" berhasil dihapus`)
-    setDeleteDialogOpen(false)
-    setDeletingItem(null)
   }
 
-  // Handle add menu
-  const handleAddMenu = async () => {
-    const errors = validateForm(addFormData)
-    setAddFormErrors(errors)
-    
-    if (Object.keys(errors).length > 0) {
-      toast.error("Mohon perbaiki kesalahan pada form")
-      return
-    }
-
-    if (!currentUMKM) return
-
-    setIsSubmitting(true)
-
-    const { data, error } = await supabase
-      .from("menu_items")
-      .insert({
-        umkm_id: currentUMKM.id,
-        name: addFormData.name.trim(),
-        price: Number(addFormData.price),
-        stock: Number(addFormData.stock),
-        description: addFormData.description.trim(),
-        category: addFormData.category,
-        image_url: addFormData.image_url || "/menu/default-food.jpg",
-        is_available: true,
-      })
-      .select()
-      .single()
-
-    setIsSubmitting(false)
-
-    if (error) {
-      toast.error("Gagal menambahkan menu", { description: error.message })
-      return
-    }
-
-    setMenuItems(prev => [data, ...prev])
-    setAddDialogOpen(false)
-    setAddFormData({
-      name: "",
-      price: "",
-      stock: "",
-      description: "",
-      category: "",
-      image_url: "/menu/default-food.jpg",
+  // Order management functions
+  const handleAcceptOrder = (order: Order) => {
+    updateOrderStatus(order.id, "ready")
+    toast.success("Pesanan diterima!", {
+      description: `Pesanan ${order.id} sedang diproses`,
     })
-    toast.success("Menu berhasil ditambahkan!", { description: `"${addFormData.name}" telah ditambahkan ke daftar menu.` })
   }
 
-  // Order management
-  const handleAcceptOrder = async (order: OrderData) => {
-    const { error } = await supabase
-      .from("orders")
-      .update({ status: "ready" })
-      .eq("id", order.id)
-
-    if (error) {
-      toast.error("Gagal menerima pesanan")
-      return
-    }
-
-    setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: "ready" } : o))
-    toast.success("Pesanan diterima!", { description: `Pesanan ${order.id.slice(0, 8)} sedang diproses` })
+  const handleCompleteOrder = (order: Order) => {
+    updateOrderStatus(order.id, "completed")
+    toast.success("Pesanan selesai!", {
+      description: `Pesanan ${order.id} telah selesai dan siap diambil`,
+    })
   }
 
-  const handleCompleteOrder = async (order: OrderData) => {
-    const { error } = await supabase
-      .from("orders")
-      .update({ status: "completed" })
-      .eq("id", order.id)
-
-    if (error) {
-      toast.error("Gagal menyelesaikan pesanan")
-      return
-    }
-
-    setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: "completed" } : o))
-    toast.success("Pesanan selesai!", { description: `Pesanan ${order.id.slice(0, 8)} telah selesai` })
+  const handleRejectOrder = (order: Order) => {
+    updateOrderStatus(order.id, "pending")
+    toast.error("Pesanan ditolak", {
+      description: `Pesanan ${order.id} telah ditolak`,
+    })
   }
 
-  const handleRejectOrder = async (order: OrderData) => {
-    const { error } = await supabase
-      .from("orders")
-      .update({ status: "cancelled" })
-      .eq("id", order.id)
-
-    if (error) {
-      toast.error("Gagal menolak pesanan")
-      return
-    }
-
-    setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: "cancelled" } : o))
-    toast.error("Pesanan ditolak", { description: `Pesanan ${order.id.slice(0, 8)} telah ditolak` })
+  const openOrderDetail = (order: Order) => {
+    setSelectedOrder(order)
+    setOrderDetailOpen(true)
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: Order["status"]) => {
     switch (status) {
       case "confirmed":
         return <Badge className="bg-warning/20 text-warning border-warning/30">Pesanan Baru</Badge>
@@ -504,10 +304,25 @@ export function UMKMView({ umkmId }: UMKMViewProps) {
         return <Badge className="bg-primary/20 text-primary border-primary/30">Sedang Diproses</Badge>
       case "completed":
         return <Badge className="bg-success/20 text-success border-success/30">Selesai</Badge>
-      case "cancelled":
-        return <Badge className="bg-destructive/20 text-destructive border-destructive/30">Dibatalkan</Badge>
+      case "pending":
+        return <Badge className="bg-destructive/20 text-destructive border-destructive/30">Ditolak</Badge>
       default:
         return <Badge variant="secondary">{status}</Badge>
+    }
+  }
+
+  const getStatusIcon = (status: Order["status"]) => {
+    switch (status) {
+      case "confirmed":
+        return <Bell className="h-5 w-5 text-warning" />
+      case "ready":
+        return <ChefHat className="h-5 w-5 text-primary" />
+      case "completed":
+        return <CheckCircle2 className="h-5 w-5 text-success" />
+      case "pending":
+        return <XCircle className="h-5 w-5 text-destructive" />
+      default:
+        return <Clock className="h-5 w-5" />
     }
   }
 
@@ -524,45 +339,6 @@ export function UMKMView({ umkmId }: UMKMViewProps) {
       month: "short",
       year: "numeric",
     })
-  }
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-background flex items-center justify-center">
-        <motion.div 
-          className="text-center p-8"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-        >
-          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Memuat data UMKM...</p>
-        </motion.div>
-      </div>
-    )
-  }
-
-  // No UMKM found
-  if (!currentUMKM) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-background flex items-center justify-center">
-        <motion.div 
-          className="text-center p-8"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-        >
-          <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
-            <Store className="h-10 w-10 text-primary" />
-          </div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">Tidak ada UMKM</h2>
-          <p className="text-muted-foreground mb-4">Belum ada UMKM yang terverifikasi atau Anda belum terdaftar.</p>
-          <Button onClick={() => window.location.reload()} variant="outline" className="gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Muat Ulang
-          </Button>
-        </motion.div>
-      </div>
-    )
   }
 
   return (
@@ -585,7 +361,7 @@ export function UMKMView({ umkmId }: UMKMViewProps) {
 
           {/* UMKM Info */}
           <div className="p-4 mx-4 mt-4 rounded-xl bg-sidebar-accent/30 backdrop-blur">
-            <p className="text-sm font-semibold text-sidebar-foreground truncate">{currentUMKM.business_name}</p>
+            <p className="text-sm font-semibold text-sidebar-foreground truncate">{currentUMKM.name}</p>
             <p className="text-xs text-sidebar-foreground/60 truncate">{currentUMKM.location}</p>
             <Badge className="mt-2 bg-success/20 text-success border-success/30 text-xs">
               Terverifikasi
@@ -707,7 +483,7 @@ export function UMKMView({ umkmId }: UMKMViewProps) {
                 <LayoutDashboard className="h-5 w-5" />
               </Button>
               <div>
-                <h1 className="text-xl font-bold text-foreground">{currentUMKM.business_name}</h1>
+                <h1 className="text-xl font-bold text-foreground">{currentUMKM.name}</h1>
                 <p className="text-sm text-muted-foreground">{currentUMKM.location}</p>
               </div>
             </div>
@@ -793,6 +569,31 @@ export function UMKMView({ umkmId }: UMKMViewProps) {
                 </Card>
               </div>
 
+              {/* Quick Actions */}
+              {newOrdersCount > 0 && (
+                <Card className="mb-8 rounded-2xl border-warning/30 bg-gradient-to-r from-warning/10 to-warning/5 shadow-lg">
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-4">
+                      <div className="h-14 w-14 rounded-full bg-warning/20 flex items-center justify-center animate-pulse">
+                        <Bell className="h-7 w-7 text-warning" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-foreground text-lg">Pesanan Menunggu!</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Anda memiliki {newOrdersCount} pesanan baru yang perlu diproses segera
+                        </p>
+                      </div>
+                      <Button 
+                        className="rounded-xl shadow-md bg-warning hover:bg-warning/90 text-warning-foreground"
+                        onClick={() => setActiveSection("orders")}
+                      >
+                        Lihat Pesanan
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Menu Overview */}
               <Card className="rounded-2xl border-0 shadow-xl">
                 <CardHeader>
@@ -849,7 +650,7 @@ export function UMKMView({ umkmId }: UMKMViewProps) {
                         <TabsTrigger value="all" className="gap-1.5 text-xs sm:text-sm">
                           Semua
                           <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs">
-                            {orders.length}
+                            {umkmOrders.length}
                           </Badge>
                         </TabsTrigger>
                         <TabsTrigger value="confirmed" className="gap-1.5 text-xs sm:text-sm">
@@ -862,6 +663,11 @@ export function UMKMView({ umkmId }: UMKMViewProps) {
                         </TabsTrigger>
                         <TabsTrigger value="ready" className="gap-1.5 text-xs sm:text-sm">
                           Proses
+                          {preparingOrdersCount > 0 && (
+                            <Badge className="ml-1 bg-primary text-primary-foreground h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs">
+                              {preparingOrdersCount}
+                            </Badge>
+                          )}
                         </TabsTrigger>
                         <TabsTrigger value="completed" className="gap-1.5 text-xs sm:text-sm">
                           Selesai
@@ -871,11 +677,28 @@ export function UMKMView({ umkmId }: UMKMViewProps) {
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {/* Search */}
+                  <div className="relative max-w-md mb-6">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      placeholder="Cari pesanan (ID, nama pelanggan, menu)..."
+                      className="pl-12 h-12 rounded-xl"
+                      value={orderSearchQuery}
+                      onChange={(e) => setOrderSearchQuery(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Orders List */}
                   {filteredOrders.length === 0 ? (
                     <div className="text-center py-16 border-2 border-dashed border-border rounded-2xl">
                       <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <p className="text-lg font-semibold text-foreground">Belum Ada Pesanan</p>
-                      <p className="text-muted-foreground">Pesanan dari pelanggan akan muncul di sini</p>
+                      <p className="text-muted-foreground">
+                        {orderFilter === "all" 
+                          ? "Pesanan dari pelanggan akan muncul di sini"
+                          : `Tidak ada pesanan dengan status "${orderFilter === "confirmed" ? "baru" : orderFilter === "ready" ? "diproses" : "selesai"}"`
+                        }
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -885,62 +708,101 @@ export function UMKMView({ umkmId }: UMKMViewProps) {
                           layout
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="p-4 rounded-xl border border-border hover:border-primary/30 transition-all"
+                          className={`p-4 rounded-2xl border transition-all hover:shadow-md ${
+                            order.status === "confirmed" 
+                              ? "border-warning/50 bg-warning/5" 
+                              : order.status === "ready"
+                              ? "border-primary/50 bg-primary/5"
+                              : "border-border bg-card"
+                          }`}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                                <Receipt className="h-5 w-5 text-primary" />
+                          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                            {/* Order Info */}
+                            <div className="flex items-start gap-4 flex-1">
+                              <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 ${
+                                order.status === "confirmed" 
+                                  ? "bg-warning/20" 
+                                  : order.status === "ready"
+                                  ? "bg-primary/20"
+                                  : order.status === "completed"
+                                  ? "bg-success/20"
+                                  : "bg-muted"
+                              }`}>
+                                {getStatusIcon(order.status)}
                               </div>
-                              <div>
-                                <p className="font-semibold">{order.customer_name}</p>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                  <span className="font-mono font-bold text-sm text-primary">
+                                    {order.id}
+                                  </span>
+                                  {getStatusBadge(order.status)}
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                  <User className="h-4 w-4" />
+                                  <span className="font-medium text-foreground">{order.customerName}</span>
+                                </div>
+                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                  <span className="flex items-center gap-1">
+                                    <Utensils className="h-3 w-3" />
+                                    {order.menuItem.name} x{order.quantity}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    Ambil: {order.pickupTime}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Price & Actions */}
+                            <div className="flex items-center justify-between lg:justify-end gap-4 pt-3 lg:pt-0 border-t lg:border-t-0 border-border/50">
+                              <div className="text-right">
+                                <p className="text-lg font-bold text-primary">{formatPrice(order.totalPrice)}</p>
                                 <p className="text-xs text-muted-foreground">
-                                  {order.menu_items?.name || "Menu"} x{order.quantity}
+                                  {formatDate(order.createdAt)} {formatTime(order.createdAt)}
                                 </p>
                               </div>
-                            </div>
-                            <div className="text-right">
-                              {getStatusBadge(order.status)}
-                              <p className="text-sm font-bold text-primary mt-1">{formatPrice(order.total_price)}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3" />
-                              {formatDate(order.created_at)} {formatTime(order.created_at)}
-                            </div>
-                            <div className="flex gap-2">
-                              {order.status === "confirmed" && (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="rounded-lg text-destructive border-destructive/30 hover:bg-destructive/10"
-                                    onClick={() => handleRejectOrder(order)}
-                                  >
-                                    <Ban className="h-4 w-4 mr-1" />
-                                    Tolak
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    className="rounded-lg bg-success hover:bg-success/90"
-                                    onClick={() => handleAcceptOrder(order)}
-                                  >
-                                    <PlayCircle className="h-4 w-4 mr-1" />
-                                    Terima
-                                  </Button>
-                                </>
-                              )}
-                              {order.status === "ready" && (
+                              <div className="flex items-center gap-2">
                                 <Button
-                                  size="sm"
-                                  className="rounded-lg"
-                                  onClick={() => handleCompleteOrder(order)}
+                                  variant="ghost"
+                                  size="icon"
+                                  className="rounded-xl"
+                                  onClick={() => openOrderDetail(order)}
                                 >
-                                  <Check className="h-4 w-4 mr-1" />
-                                  Selesai
+                                  <Eye className="h-4 w-4" />
                                 </Button>
-                              )}
+                                {order.status === "confirmed" && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="rounded-xl text-destructive border-destructive/30 hover:bg-destructive/10"
+                                      onClick={() => handleRejectOrder(order)}
+                                    >
+                                      <Ban className="h-4 w-4 mr-1" />
+                                      Tolak
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      className="rounded-xl bg-success hover:bg-success/90 text-success-foreground"
+                                      onClick={() => handleAcceptOrder(order)}
+                                    >
+                                      <PlayCircle className="h-4 w-4 mr-1" />
+                                      Terima
+                                    </Button>
+                                  </>
+                                )}
+                                {order.status === "ready" && (
+                                  <Button
+                                    size="sm"
+                                    className="rounded-xl"
+                                    onClick={() => handleCompleteOrder(order)}
+                                  >
+                                    <Check className="h-4 w-4 mr-1" />
+                                    Selesai
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </motion.div>
@@ -966,10 +828,6 @@ export function UMKMView({ umkmId }: UMKMViewProps) {
                       <CardTitle className="text-xl font-bold">Kelola Menu</CardTitle>
                       <CardDescription>Atur menu makanan dan minuman Anda</CardDescription>
                     </div>
-                    <Button onClick={() => setAddDialogOpen(true)} className="gap-2 rounded-xl">
-                      <Plus className="h-4 w-4" />
-                      Tambah Menu
-                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -985,96 +843,84 @@ export function UMKMView({ umkmId }: UMKMViewProps) {
                   </div>
 
                   {/* Menu Cards Grid */}
-                  {filteredItems.length === 0 ? (
-                    <div className="text-center py-12 border-2 border-dashed border-border rounded-2xl">
-                      <UtensilsCrossed className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-lg font-semibold text-foreground mb-2">Belum Ada Menu</p>
-                      <p className="text-muted-foreground mb-4">Klik tombol &quot;Tambah Menu&quot; untuk menambahkan menu pertama Anda</p>
-                      <Button onClick={() => setAddDialogOpen(true)} className="gap-2 rounded-xl">
-                        <Plus className="h-4 w-4" />
-                        Tambah Menu Pertama
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {filteredItems.map((item) => (
-                        <motion.div
-                          key={item.id}
-                          layout
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="group"
-                        >
-                          <Card className="overflow-hidden rounded-2xl border border-border/50 hover:border-primary/30 hover:shadow-lg transition-all">
-                            <div className="aspect-video relative overflow-hidden bg-muted">
-                              {item.image_url ? (
-                                <Image
-                                  src={item.image_url}
-                                  alt={item.name}
-                                  fill
-                                  className="object-cover group-hover:scale-105 transition-transform duration-300"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
-                                </div>
-                              )}
-                              {item.stock === 0 && (
-                                <div className="absolute inset-0 bg-foreground/60 backdrop-blur-sm flex items-center justify-center">
-                                  <Badge variant="destructive" className="rounded-full">Habis</Badge>
-                                </div>
-                              )}
-                              {item.stock > 0 && item.stock <= 5 && (
-                                <div className="absolute top-3 right-3">
-                                  <Badge className="bg-warning text-warning-foreground rounded-full">
-                                    Sisa {item.stock}
-                                  </Badge>
-                                </div>
-                              )}
-                            </div>
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between gap-2 mb-2">
-                                <div>
-                                  <h3 className="font-semibold text-foreground">{item.name}</h3>
-                                  <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                                </div>
-                                <Badge variant="outline" className="shrink-0 rounded-full text-xs">
-                                  {item.category}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {filteredItems.map((item) => (
+                      <motion.div
+                        key={item.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="group"
+                      >
+                        <Card className="overflow-hidden rounded-2xl border border-border/50 hover:border-primary/30 hover:shadow-lg transition-all">
+                          <div className="aspect-video relative overflow-hidden">
+                            <Image
+                              src={item.image}
+                              alt={item.name}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            {item.stock === 0 && (
+                              <div className="absolute inset-0 bg-foreground/60 backdrop-blur-sm flex items-center justify-center">
+                                <Badge variant="destructive" className="rounded-full">Habis</Badge>
+                              </div>
+                            )}
+                            {item.stock > 0 && item.stock <= 5 && (
+                              <div className="absolute top-3 right-3">
+                                <Badge className="bg-warning text-warning-foreground rounded-full">
+                                  Sisa {item.stock}
                                 </Badge>
                               </div>
-                              
-                              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
-                                <div>
-                                  <p className="text-lg font-bold text-primary">{formatPrice(item.price)}</p>
-                                  <p className="text-xs text-muted-foreground">Stok: {item.stock}</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Switch
-                                    checked={item.is_available}
-                                    onCheckedChange={() => toggleAvailability(item.id)}
-                                  />
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-9 w-9 rounded-xl"
-                                    onClick={() => openEditDialog(item)}
-                                  >
-                                    <Edit2 className="h-4 w-4" />
-                                  </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-9 w-9 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10"
-                                    onClick={() => openDeleteDialog(item)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
+                            )}
+                          </div>
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div>
+                                <h3 className="font-semibold text-foreground">{item.name}</h3>
+                                <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
                               </div>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      ))}
+                              <Badge variant="outline" className="shrink-0 rounded-full text-xs">
+                                {item.category}
+                              </Badge>
+                            </div>
+                            
+                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+                              <div>
+                                <p className="text-lg font-bold text-primary">{formatPrice(item.price)}</p>
+                                <p className="text-xs text-muted-foreground">Stok: {item.stock}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Switch
+                                  checked={item.isAvailable}
+                                  onCheckedChange={() => toggleAvailability(item.id)}
+                                />
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-9 w-9 rounded-xl"
+                                  onClick={() => openEditDialog(item)}
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-9 w-9 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => openDeleteDialog(item)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {filteredItems.length === 0 && (
+                    <div className="text-center py-12 border-2 border-dashed border-border rounded-2xl">
+                      <p className="text-muted-foreground">Tidak ada menu yang ditemukan</p>
                     </div>
                   )}
                 </CardContent>
@@ -1098,17 +944,9 @@ export function UMKMView({ umkmId }: UMKMViewProps) {
                   <CardDescription>Kelola pengaturan UMKM Anda</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="p-4 rounded-xl bg-muted/50">
-                      <h4 className="font-semibold mb-2">Informasi UMKM</h4>
-                      <div className="space-y-2 text-sm">
-                        <p><span className="text-muted-foreground">Nama Bisnis:</span> {currentUMKM.business_name}</p>
-                        <p><span className="text-muted-foreground">Pemilik:</span> {currentUMKM.owner_name}</p>
-                        <p><span className="text-muted-foreground">Lokasi:</span> {currentUMKM.location}</p>
-                        <p><span className="text-muted-foreground">Email:</span> {currentUMKM.contact_email}</p>
-                        <p><span className="text-muted-foreground">Telepon:</span> {currentUMKM.contact_phone}</p>
-                      </div>
-                    </div>
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>Fitur pengaturan akan segera tersedia</p>
                   </div>
                 </CardContent>
               </Card>
@@ -1119,7 +957,7 @@ export function UMKMView({ umkmId }: UMKMViewProps) {
         {/* Floating Action Button */}
         {activeSection === "menu" && (
           <motion.div
-            className="fixed bottom-6 right-6 z-50 lg:hidden"
+            className="fixed bottom-6 right-6 z-50"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", delay: 0.5 }}
@@ -1134,6 +972,124 @@ export function UMKMView({ umkmId }: UMKMViewProps) {
           </motion.div>
         )}
       </main>
+
+      {/* Order Detail Dialog */}
+      <Dialog open={orderDetailOpen} onOpenChange={setOrderDetailOpen}>
+        <DialogContent className="max-w-lg rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Receipt className="h-5 w-5 text-primary" />
+              </div>
+              Detail Pesanan
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedOrder && (
+            <div className="space-y-4">
+              {/* Order ID & Status */}
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-xl">
+                <div>
+                  <p className="text-xs text-muted-foreground">Order ID</p>
+                  <p className="font-mono font-bold text-primary">{selectedOrder.id}</p>
+                </div>
+                {getStatusBadge(selectedOrder.status)}
+              </div>
+
+              {/* Customer Info */}
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm text-muted-foreground">Informasi Pelanggan</h4>
+                <div className="p-3 bg-muted/30 rounded-xl space-y-2">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{selectedOrder.customerName}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Order Details */}
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm text-muted-foreground">Detail Pesanan</h4>
+                <div className="p-3 bg-muted/30 rounded-xl space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-16 w-16 rounded-xl overflow-hidden relative">
+                      <Image
+                        src={selectedOrder.menuItem.image}
+                        alt={selectedOrder.menuItem.name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">{selectedOrder.menuItem.name}</p>
+                      <p className="text-sm text-muted-foreground">x{selectedOrder.quantity}</p>
+                    </div>
+                    <p className="font-bold text-primary">{formatPrice(selectedOrder.totalPrice)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pickup Time */}
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm text-muted-foreground">Waktu Pengambilan</h4>
+                <div className="p-3 bg-muted/30 rounded-xl flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{selectedOrder.pickupTime}</span>
+                </div>
+              </div>
+
+              {/* Order Time */}
+              <div className="p-3 bg-muted/30 rounded-xl flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Waktu Pemesanan</span>
+                <span>{formatDate(selectedOrder.createdAt)} {formatTime(selectedOrder.createdAt)}</span>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setOrderDetailOpen(false)} className="rounded-xl">
+              Tutup
+            </Button>
+            {selectedOrder?.status === "confirmed" && (
+              <>
+                <Button 
+                  variant="outline" 
+                  className="rounded-xl text-destructive border-destructive/30 hover:bg-destructive/10"
+                  onClick={() => {
+                    handleRejectOrder(selectedOrder)
+                    setOrderDetailOpen(false)
+                  }}
+                >
+                  <Ban className="h-4 w-4 mr-1" />
+                  Tolak
+                </Button>
+                <Button 
+                  className="rounded-xl bg-success hover:bg-success/90 text-success-foreground"
+                  onClick={() => {
+                    handleAcceptOrder(selectedOrder)
+                    setOrderDetailOpen(false)
+                  }}
+                >
+                  <PlayCircle className="h-4 w-4 mr-1" />
+                  Terima
+                </Button>
+              </>
+            )}
+            {selectedOrder?.status === "ready" && (
+              <Button 
+                className="rounded-xl"
+                onClick={() => {
+                  handleCompleteOrder(selectedOrder)
+                  setOrderDetailOpen(false)
+                }}
+              >
+                <Check className="h-4 w-4 mr-1" />
+                Selesai
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Menu Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
@@ -1168,34 +1124,6 @@ export function UMKMView({ umkmId }: UMKMViewProps) {
                   <span className="flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {formErrors.name}
-                  </span>
-                </FieldError>
-              )}
-            </Field>
-
-            <Field data-invalid={!!formErrors.category}>
-              <FieldLabel htmlFor="edit-category">Kategori</FieldLabel>
-              <Select 
-                value={formData.category} 
-                onValueChange={(value) => {
-                  setFormData(prev => ({ ...prev, category: value }))
-                  if (formErrors.category) setFormErrors(prev => ({ ...prev, category: undefined }))
-                }}
-              >
-                <SelectTrigger className="rounded-xl h-11">
-                  <SelectValue placeholder="Pilih kategori" />
-                </SelectTrigger>
-                <SelectContent>
-                  {menuCategories.map(cat => (
-                    <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {formErrors.category && (
-                <FieldError>
-                  <span className="flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    {formErrors.category}
                   </span>
                 </FieldError>
               )}
@@ -1269,24 +1197,13 @@ export function UMKMView({ umkmId }: UMKMViewProps) {
                 </FieldError>
               )}
             </Field>
-
-            <Field>
-              <FieldLabel htmlFor="edit-image">URL Gambar (Opsional)</FieldLabel>
-              <Input
-                id="edit-image"
-                placeholder="https://example.com/image.jpg"
-                value={formData.image_url}
-                onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
-                className="rounded-xl h-11"
-              />
-            </Field>
           </FieldGroup>
 
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="rounded-xl">
               Batal
             </Button>
-            <Button onClick={handleEditSubmit} disabled={isSubmitting} className="rounded-xl">
+            <Button onClick={handleSubmit} disabled={isSubmitting} className="rounded-xl">
               {isSubmitting ? (
                 <>
                   <Spinner className="mr-2 h-4 w-4" />
@@ -1340,158 +1257,12 @@ export function UMKMView({ umkmId }: UMKMViewProps) {
               Tambahkan menu baru ke daftar produk Anda
             </DialogDescription>
           </DialogHeader>
-
-          <FieldGroup>
-            <Field data-invalid={!!addFormErrors.name}>
-              <FieldLabel htmlFor="add-name">Nama Menu</FieldLabel>
-              <Input
-                id="add-name"
-                placeholder="Contoh: Nasi Goreng Spesial"
-                value={addFormData.name}
-                onChange={(e) => {
-                  setAddFormData(prev => ({ ...prev, name: e.target.value }))
-                  if (addFormErrors.name) setAddFormErrors(prev => ({ ...prev, name: undefined }))
-                }}
-                className={`rounded-xl h-11 ${addFormErrors.name ? "border-destructive" : ""}`}
-              />
-              {addFormErrors.name && (
-                <FieldError>
-                  <span className="flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    {addFormErrors.name}
-                  </span>
-                </FieldError>
-              )}
-            </Field>
-
-            <Field data-invalid={!!addFormErrors.category}>
-              <FieldLabel htmlFor="add-category">Kategori</FieldLabel>
-              <Select 
-                value={addFormData.category} 
-                onValueChange={(value) => {
-                  setAddFormData(prev => ({ ...prev, category: value }))
-                  if (addFormErrors.category) setAddFormErrors(prev => ({ ...prev, category: undefined }))
-                }}
-              >
-                <SelectTrigger className="rounded-xl h-11">
-                  <SelectValue placeholder="Pilih kategori" />
-                </SelectTrigger>
-                <SelectContent>
-                  {menuCategories.map(cat => (
-                    <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {addFormErrors.category && (
-                <FieldError>
-                  <span className="flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    {addFormErrors.category}
-                  </span>
-                </FieldError>
-              )}
-            </Field>
-
-            <Field data-invalid={!!addFormErrors.price}>
-              <FieldLabel htmlFor="add-price">Harga (Rp)</FieldLabel>
-              <Input
-                id="add-price"
-                type="number"
-                placeholder="Contoh: 15000"
-                value={addFormData.price}
-                onChange={(e) => {
-                  setAddFormData(prev => ({ ...prev, price: e.target.value }))
-                  if (addFormErrors.price) setAddFormErrors(prev => ({ ...prev, price: undefined }))
-                }}
-                className={`rounded-xl h-11 ${addFormErrors.price ? "border-destructive" : ""}`}
-              />
-              {addFormErrors.price && (
-                <FieldError>
-                  <span className="flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    {addFormErrors.price}
-                  </span>
-                </FieldError>
-              )}
-            </Field>
-
-            <Field data-invalid={!!addFormErrors.stock}>
-              <FieldLabel htmlFor="add-stock">Stok</FieldLabel>
-              <Input
-                id="add-stock"
-                type="number"
-                placeholder="Contoh: 50"
-                value={addFormData.stock}
-                onChange={(e) => {
-                  setAddFormData(prev => ({ ...prev, stock: e.target.value }))
-                  if (addFormErrors.stock) setAddFormErrors(prev => ({ ...prev, stock: undefined }))
-                }}
-                className={`rounded-xl h-11 ${addFormErrors.stock ? "border-destructive" : ""}`}
-              />
-              {addFormErrors.stock && (
-                <FieldError>
-                  <span className="flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    {addFormErrors.stock}
-                  </span>
-                </FieldError>
-              )}
-            </Field>
-
-            <Field data-invalid={!!addFormErrors.description}>
-              <FieldLabel htmlFor="add-description">Deskripsi</FieldLabel>
-              <Textarea
-                id="add-description"
-                placeholder="Jelaskan menu Anda..."
-                value={addFormData.description}
-                onChange={(e) => {
-                  setAddFormData(prev => ({ ...prev, description: e.target.value }))
-                  if (addFormErrors.description) setAddFormErrors(prev => ({ ...prev, description: undefined }))
-                }}
-                className={`rounded-xl ${addFormErrors.description ? "border-destructive" : ""}`}
-                rows={3}
-              />
-              {addFormErrors.description && (
-                <FieldError>
-                  <span className="flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    {addFormErrors.description}
-                  </span>
-                </FieldError>
-              )}
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="add-image">URL Gambar (Opsional)</FieldLabel>
-              <Input
-                id="add-image"
-                placeholder="https://example.com/image.jpg"
-                value={addFormData.image_url}
-                onChange={(e) => setAddFormData(prev => ({ ...prev, image_url: e.target.value }))}
-                className="rounded-xl h-11"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Biarkan kosong untuk menggunakan gambar default
-              </p>
-            </Field>
-          </FieldGroup>
-
-          <DialogFooter className="gap-2 sm:gap-0">
+          <div className="text-center py-8 text-muted-foreground">
+            <p>Fitur ini akan segera tersedia</p>
+          </div>
+          <DialogFooter>
             <Button variant="outline" onClick={() => setAddDialogOpen(false)} className="rounded-xl">
-              Batal
-            </Button>
-            <Button onClick={handleAddMenu} disabled={isSubmitting} className="rounded-xl">
-              {isSubmitting ? (
-                <>
-                  <Spinner className="mr-2 h-4 w-4" />
-                  Menambahkan...
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Tambah Menu
-                </>
-              )}
+              Tutup
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -6,14 +6,15 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowRight, AlertCircle, CheckCircle2, Phone, Mail, Store, User, MapPin, FileText, Loader2 } from "lucide-react"
+import { ArrowRight, AlertCircle, CheckCircle2, Phone, Mail, Store, User, MapPin, FileText } from "lucide-react"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
-import { createClient } from "@/lib/supabase/client"
+import type { UMKM } from "@/lib/mock-data"
 
 interface UMKMRegistrationFormProps {
-  onSubmit?: () => void
+  onSubmit?: (formData: Omit<UMKM, "id" | "isApproved" | "isPending" | "rating" | "createdAt">) => void
   onCancel?: () => void
 }
 
@@ -92,39 +93,23 @@ export function UMKMRegistrationForm({ onSubmit, onCancel }: UMKMRegistrationFor
 
     setIsSubmitting(true)
 
-    try {
-      const supabase = createClient()
-      
-      const { error } = await supabase.from("umkm_registrations").insert({
-        owner_name: formData.ownerName.trim(),
-        business_name: formData.businessName.trim(),
-        description: formData.description.trim(),
-        location: formData.location.trim(),
-        contact_phone: formData.contactPhone.trim(),
-        contact_email: formData.contactEmail.trim(),
-        business_type: formData.businessType,
-        business_license: formData.businessLicense.trim(),
-        bank_account: formData.bankAccount.trim(),
-        status: "pending",
-      })
-
-      if (error) {
-        console.error("[v0] Error inserting UMKM registration:", error)
-        toast.error("Gagal mendaftarkan UMKM", {
-          description: error.message || "Terjadi kesalahan saat mendaftar. Silakan coba lagi.",
+    // Simulate API call
+    setTimeout(() => {
+      if (onSubmit) {
+        onSubmit({
+          name: formData.businessName,
+          description: formData.description,
+          owner: formData.ownerName,
+          location: formData.location,
+          image: "/stores/default-store.jpg",
+          menu: [],
         })
-        setIsSubmitting(false)
-        return
       }
 
       setSubmitted(true)
       toast.success("Pendaftaran UMKM berhasil!", {
         description: "Data Anda akan ditinjau oleh admin dalam 1-2 hari kerja.",
       })
-
-      if (onSubmit) {
-        onSubmit()
-      }
 
       setTimeout(() => {
         setSubmitted(false)
@@ -142,14 +127,9 @@ export function UMKMRegistrationForm({ onSubmit, onCancel }: UMKMRegistrationFor
         })
         if (onCancel) onCancel()
       }, 2000)
-    } catch (err) {
-      console.error("[v0] Unexpected error:", err)
-      toast.error("Terjadi kesalahan", {
-        description: "Silakan coba lagi nanti.",
-      })
-    } finally {
+
       setIsSubmitting(false)
-    }
+    }, 1500)
   }
 
   if (submitted) {
