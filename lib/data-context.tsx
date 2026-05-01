@@ -5,7 +5,7 @@ import { mockUMKMs, pendingUMKMs, type UMKM, type MenuItem } from "./mock-data"
 
 export interface Order {
   id: string
-  menuItem: MenuItem & { vendorName: string; vendorId: string }
+  menuItem: MenuItem & { vendorName: string; vendorId: string; vendorLocation?: string }
   quantity: number
   pickupTime: string
   totalPrice: number
