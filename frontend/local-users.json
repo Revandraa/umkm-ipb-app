@@ -1,0 +1,16 @@
+[
+  {
+    "id": "1779087768261",
+    "email": "test@ipb.ac.id",
+    "password": "123",
+    "full_name": "Test",
+    "role": "customer"
+  },
+  {
+    "id": "1779087871616",
+    "email": "revandraarevandra@apps.ipb.ac.id",
+    "password": "Inirepan12345",
+    "full_name": "Revandra Athaya Rizkika",
+    "role": "customer"
+  }
+]

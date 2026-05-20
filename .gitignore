@@ -8,3 +8,30 @@ node_modules/
 .next/
 .env*.local
 .DS_Store
+
+# Python
+__pycache__/
+*.pyc
+venv/
+venv312/
+.venv/
+
+# Environment / Secret Files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+
+# Local Database
+*.db
+*.sqlite3
+backend/umkm_ipb.db
+
+# Build files
+*.tsbuildinfo
+
+# Archive files
+*.zip
+package.zip

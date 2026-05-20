@@ -3,10 +3,15 @@ UserService - Menangani semua business logic terkait users
 """
 from abc import ABC, abstractmethod
 from typing import Optional, List
+# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 from app.models.database import User
 from app.models.schemas import UserCreate, UserUpdate, UserResponse
 import uuid
+# pyrefly: ignore [missing-import]
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class IUserService(ABC):
@@ -45,19 +50,24 @@ class UserService(IUserService):
     
     def create_user(self, user_data: UserCreate) -> UserResponse:
         """
-        Membuat user baru
+        Membuat user baru dengan password yang di-hash
         """
+        hashed_password = pwd_context.hash(user_data.password)
         db_user = User(
             id=str(uuid.uuid4()),
             email=user_data.email,
             full_name=user_data.full_name,
             role=user_data.role,
-            phone=user_data.phone
+            phone=user_data.phone,
+            hashed_password=hashed_password
         )
         self.db.add(db_user)
         self.db.commit()
         self.db.refresh(db_user)
         return UserResponse.from_orm(db_user)
+    
+    def verify_password(self, plain_password, hashed_password):
+        return pwd_context.verify(plain_password, hashed_password)
     
     def get_user(self, user_id: str) -> Optional[UserResponse]:
         """
@@ -92,7 +102,7 @@ class UserService(IUserService):
         if not db_user:
             raise ValueError(f"User {user_id} not found")
         
-        update_data = user_data.dict(exclude_unset=True)
+        update_data = user_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(db_user, field, value)
         

@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, List
 from datetime import datetime
 from decimal import Decimal
+# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 from app.models.database import Order, OrderItem, MenuItem, Transaction
 from app.models.schemas import OrderCreate, OrderUpdate, OrderResponse, OrderStatus
@@ -106,6 +107,10 @@ class OrderService(IOrderService):
             menu_item = self.db.query(MenuItem).filter(
                 MenuItem.id == item_data.menu_item_id
             ).first()
+            
+            if not menu_item:
+                # This should not happen due to _calculate_total_price check, but for safety:
+                raise ValueError(f"Menu item {item_data.menu_item_id} not found")
             
             order_item = OrderItem(
                 id=str(uuid.uuid4()),

@@ -1,6 +1,7 @@
 """
 Pydantic schemas untuk data validation dan API responses
 """
+# pyrefly: ignore [missing-import]
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 from datetime import datetime
@@ -66,7 +67,7 @@ class MenuItemBase(BaseModel):
     name: str
     description: Optional[str] = None
     category: str
-    price: Decimal = Field(..., decimal_places=2, gt=0)
+    price: Decimal = Field(..., gt=0)
     image_url: Optional[str] = None
     is_available: bool = True
 
@@ -79,7 +80,7 @@ class MenuItemUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
-    price: Optional[Decimal] = Field(None, decimal_places=2, gt=0)
+    price: Optional[Decimal] = Field(None, gt=0)
     image_url: Optional[str] = None
     is_available: Optional[bool] = None
 
@@ -117,7 +118,7 @@ class UMKMUpdate(BaseModel):
 class UMKMResponse(UMKMBase):
     id: str
     owner_id: str
-    rating: Decimal
+    rating: float
     status: UMKMStatus
     rejection_reason: Optional[str] = None
     menu_items: List[MenuItemResponse] = []
@@ -203,7 +204,7 @@ class ReviewResponse(ReviewBase):
 # ==================== TRANSACTION SCHEMAS ====================
 class TransactionCreate(BaseModel):
     order_id: str
-    amount: Decimal = Field(..., decimal_places=2, gt=0)
+    amount: Decimal = Field(..., gt=0)
     payment_method: PaymentMethod
 
 
@@ -215,3 +216,23 @@ class TransactionResponse(TransactionCreate):
 
     class Config:
         from_attributes = True
+
+
+# ==================== AUTH SCHEMAS ====================
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    user: Optional["UserResponse"] = None
+
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+# Rebuild models with forward references
+Token.model_rebuild()

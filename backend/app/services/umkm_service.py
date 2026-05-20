@@ -1,11 +1,13 @@
+from __future__ import annotations
 """
 UMKMService - Menangani semua business logic terkait UMKM
 """
 from abc import ABC, abstractmethod
 from typing import Optional, List
+# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 from app.models.database import UMKM, MenuItem
-from app.models.schemas import UMKMCreate, UMKMUpdate, UMKMResponse, UMKMStatus, MenuItemCreate
+from app.models.schemas import UMKMCreate, UMKMUpdate, UMKMResponse, UMKMStatus, MenuItemCreate, MenuItemResponse
 import uuid
 
 
@@ -46,6 +48,14 @@ class IUMKMService(ABC):
     
     @abstractmethod
     def add_menu_item(self, umkm_id: str, menu_data: MenuItemCreate):
+        pass
+
+    @abstractmethod
+    def suspend_umkm(self, umkm_id: str, reason: str):
+        pass
+
+    @abstractmethod
+    def reactivate_umkm(self, umkm_id: str):
         pass
     
     @abstractmethod
@@ -118,7 +128,7 @@ class UMKMService(IUMKMService):
         if not db_umkm:
             raise ValueError(f"UMKM {umkm_id} not found")
         
-        update_data = umkm_data.dict(exclude_unset=True)
+        update_data = umkm_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(db_umkm, field, value)
         
@@ -154,7 +164,7 @@ class UMKMService(IUMKMService):
         self.db.refresh(db_umkm)
         return UMKMResponse.from_orm(db_umkm)
     
-    def add_menu_item(self, umkm_id: str, menu_data: MenuItemCreate) -> dict:
+    def add_menu_item(self, umkm_id: str, menu_data: MenuItemCreate) -> MenuItemResponse:
         """
         Menambahkan menu item untuk UMKM
         """
@@ -175,7 +185,36 @@ class UMKMService(IUMKMService):
         self.db.add(menu_item)
         self.db.commit()
         self.db.refresh(menu_item)
-        return {"id": menu_item.id, "name": menu_item.name}
+        from app.models.schemas import MenuItemResponse
+        return MenuItemResponse.from_orm(menu_item)
+
+    def suspend_umkm(self, umkm_id: str, reason: str) -> UMKMResponse:
+        """
+        Menangguhkan UMKM yang sudah aktif
+        """
+        db_umkm = self.db.query(UMKM).filter(UMKM.id == umkm_id).first()
+        if not db_umkm:
+            raise ValueError(f"UMKM {umkm_id} not found")
+        
+        db_umkm.status = "suspended"
+        db_umkm.rejection_reason = reason # Reuse for suspension reason
+        self.db.commit()
+        self.db.refresh(db_umkm)
+        return UMKMResponse.from_orm(db_umkm)
+
+    def reactivate_umkm(self, umkm_id: str) -> UMKMResponse:
+        """
+        Mengaktifkan kembali UMKM yang ditangguhkan
+        """
+        db_umkm = self.db.query(UMKM).filter(UMKM.id == umkm_id).first()
+        if not db_umkm:
+            raise ValueError(f"UMKM {umkm_id} not found")
+        
+        db_umkm.status = "approved"
+        db_umkm.rejection_reason = None
+        self.db.commit()
+        self.db.refresh(db_umkm)
+        return UMKMResponse.from_orm(db_umkm)
     
     def calculate_rating(self, umkm_id: str) -> float:
         """

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
-from app.models.schemas import UMKMCreate, UMKMResponse, MenuItemCreate
+from app.models.schemas import UMKMCreate, UMKMResponse, MenuItemCreate, MenuItemResponse
 from app.services.umkm_service import UMKMService
 
 router = APIRouter()
@@ -69,7 +69,7 @@ def get_umkms_by_owner(
     return service.get_umkms_by_owner(owner_id)
 
 
-@router.post("/{umkm_id}/menu", status_code=status.HTTP_201_CREATED)
+@router.post("/{umkm_id}/menu", response_model=MenuItemResponse, status_code=status.HTTP_201_CREATED)
 def add_menu_item(
     umkm_id: str,
     menu_data: MenuItemCreate,
@@ -111,7 +111,7 @@ def approve_umkm(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/{umkm_id}/reject")
+@router.post("/{umkm_id}/reject", response_model=UMKMResponse)
 def reject_umkm(
     umkm_id: str,
     reason: str,
@@ -123,5 +123,36 @@ def reject_umkm(
     try:
         service = UMKMService(db)
         return service.reject_umkm(umkm_id, reason)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/{umkm_id}/suspend", response_model=UMKMResponse)
+def suspend_umkm(
+    umkm_id: str,
+    reason: str,
+    db: Session = Depends(get_db)
+):
+    """
+    [ADMIN] Menangguhkan UMKM
+    """
+    try:
+        service = UMKMService(db)
+        return service.suspend_umkm(umkm_id, reason)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/{umkm_id}/reactivate", response_model=UMKMResponse)
+def reactivate_umkm(
+    umkm_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    [ADMIN] Mengaktifkan kembali UMKM
+    """
+    try:
+        service = UMKMService(db)
+        return service.reactivate_umkm(umkm_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

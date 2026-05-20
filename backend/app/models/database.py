@@ -18,6 +18,7 @@ class User(Base):
     full_name = Column(String(255))
     role = Column(String(50), nullable=False, default="customer")
     phone = Column(String(20))
+    hashed_password = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

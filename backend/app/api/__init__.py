@@ -2,11 +2,12 @@
 API routers
 """
 from fastapi import APIRouter
-from app.api.endpoints import users, umkm, orders, reviews
+from app.api.endpoints import users, umkm, orders, reviews, auth
 
 api_router = APIRouter()
 
 # Include routers
+api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(umkm.router, prefix="/umkm", tags=["umkm"])
 api_router.include_router(orders.router, prefix="/orders", tags=["orders"])
