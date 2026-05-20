@@ -47,7 +47,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     const fetchData = async () => {
       try {
-        const backendUrl = "http://localhost:8000/api/v1";
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
         
         // Fetch Approved
         const approvedRes = await fetch(`${backendUrl}/umkm?limit=50`, { signal: controller.signal });
