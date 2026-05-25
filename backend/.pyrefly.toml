@@ -1,0 +1,11 @@
+# Pyrefly configuration
+# Arahkan ke Python interpreter venv312 yang sudah punya fastapi, uvicorn, dll.
+# Ini mencegah IDE error "Cannot find module" yang muncul karena
+# pyrefly secara default menggunakan Python global (3.14) bukan venv.
+
+[python]
+python_interpreter = "venv312/Scripts/python.exe"
+
+[project]
+include = ["app/**/*.py"]
+exclude = ["venv312/**", "__pycache__/**", "*.pyc"]

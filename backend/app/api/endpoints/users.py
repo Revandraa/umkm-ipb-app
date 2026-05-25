@@ -17,6 +17,23 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
     return service.create_user(user_data)
 
 
+@router.get("/count", response_model=int)
+def get_user_count(db: Session = Depends(get_db)):
+    """Get total user count"""
+    service = UserService(db)
+    return service.count_users()
+
+
+@router.get("/email/{email}", response_model=UserResponse)
+def get_user_by_email(email: str, db: Session = Depends(get_db)):
+    """Get user by email"""
+    from app.models.database import User
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user(user_id: str, db: Session = Depends(get_db)):
     """Get user profile"""

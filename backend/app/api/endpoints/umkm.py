@@ -96,6 +96,15 @@ def list_pending_umkms(db: Session = Depends(get_db)):
     return service.list_pending_umkms()
 
 
+@router.get("/admin/suspended", response_model=List[UMKMResponse])
+def list_suspended_umkms(db: Session = Depends(get_db)):
+    """
+    [ADMIN] List UMKM yang ditangguhkan (suspended)
+    """
+    service = UMKMService(db)
+    return service.list_suspended_umkms()
+
+
 @router.post("/{umkm_id}/approve", response_model=UMKMResponse)
 def approve_umkm(
     umkm_id: str,

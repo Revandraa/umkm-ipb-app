@@ -66,7 +66,7 @@ class UserResponse(UserBase):
 class MenuItemBase(BaseModel):
     name: str
     description: Optional[str] = None
-    category: str
+    category: Optional[str] = None
     price: Decimal = Field(..., gt=0)
     image_url: Optional[str] = None
     is_available: bool = True
@@ -157,12 +157,14 @@ class OrderBase(BaseModel):
 
 class OrderCreate(OrderBase):
     items: List[OrderItemCreate] = Field(..., min_items=1)
+    promo_code: Optional[str] = None
 
 
 class OrderUpdate(BaseModel):
     status: Optional[OrderStatus] = None
     pickup_time: Optional[datetime] = None
     notes: Optional[str] = None
+    payment_proof: Optional[str] = None
 
 
 class OrderResponse(OrderBase):
@@ -172,6 +174,7 @@ class OrderResponse(OrderBase):
     status: OrderStatus
     total_price: Decimal
     items: List[OrderItemResponse] = []
+    payment_proof: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -236,3 +239,50 @@ class LoginRequest(BaseModel):
 
 # Rebuild models with forward references
 Token.model_rebuild()
+
+
+# ==================== PROMO SCHEMAS ====================
+class DiscountType(str, Enum):
+    PERCENT = "percent"
+    FIXED = "fixed"
+
+
+class PromoBase(BaseModel):
+    title: str
+    description: Optional[str] = None
+    code: str
+    discount_type: DiscountType = DiscountType.PERCENT
+    discount_value: Decimal = Field(..., gt=0)
+    min_order: Decimal = Field(default=Decimal("0"))
+    max_discount: Optional[Decimal] = None
+    umkm_id: Optional[str] = None
+    image_url: Optional[str] = None
+    valid_from: datetime
+    valid_until: datetime
+    is_active: bool = True
+
+
+class PromoCreate(PromoBase):
+    pass
+
+
+class PromoUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    discount_value: Optional[Decimal] = Field(None, gt=0)
+    min_order: Optional[Decimal] = None
+    max_discount: Optional[Decimal] = None
+    image_url: Optional[str] = None
+    valid_from: Optional[datetime] = None
+    valid_until: Optional[datetime] = None
+    is_active: Optional[bool] = None
+
+
+class PromoResponse(PromoBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+

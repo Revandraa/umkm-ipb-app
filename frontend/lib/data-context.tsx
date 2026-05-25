@@ -9,9 +9,30 @@ export interface Order {
   quantity: number
   pickupTime: string
   totalPrice: number
-  status: "pending" | "confirmed" | "ready" | "completed"
+  status: "pending" | "confirmed" | "ready" | "completed" | "cancelled"
   createdAt: string
   customerName: string
+  paymentProof?: string
+  notes?: string
+  promoCode?: string
+}
+
+export interface Promo {
+  id: string
+  title: string
+  description: string | null
+  code: string
+  discount_type: "percent" | "fixed"
+  discount_value: number
+  min_order: number
+  max_discount: number | null
+  umkm_id: string | null
+  image_url: string | null
+  valid_from: string
+  valid_until: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
 }
 
 interface DataContextType {
@@ -19,6 +40,16 @@ interface DataContextType {
   pendingUMKMs: UMKM[]
   suspendedUMKMs: UMKM[]
   orders: Order[]
+  promos: Promo[]
+  activeUsersCount: number
+  customerId: string
+  customerName: string
+  customerEmail: string
+  customerPhone: string
+  customerCreatedAt: string
+  totalOrdersCount: number
+  completedOrdersCount: number
+  totalSpent: number
   approveUMKM: (umkmId: string) => void
   rejectUMKM: (umkmId: string) => void
   suspendUMKM: (umkmId: string, reason: string) => void
@@ -26,7 +57,8 @@ interface DataContextType {
   updateMenuItem: (umkmId: string, menuItemId: string, updates: Partial<MenuItem>) => void
   deleteMenuItem: (umkmId: string, menuItemId: string) => void
   addMenuItem: (umkmId: string, menuItem: Omit<MenuItem, "id">) => void
-  addOrder: (order: Omit<Order, "id" | "createdAt" | "status">) => Order
+  addOrder: (order: Omit<Order, "id" | "createdAt" | "status">) => Promise<Order>
+  uploadPaymentProof: (orderId: string, file: File) => Promise<boolean>
   updateOrderStatus: (orderId: string, status: Order["status"]) => void
   updateMenuStock: (vendorId: string, menuItemId: string, quantity: number) => void
 }
@@ -38,6 +70,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [pending, setPending] = useState<UMKM[]>(pendingUMKMs)
   const [suspendedUMKMs, setSuspendedUMKMs] = useState<UMKM[]>([])
   const [orders, setOrders] = useState<Order[]>([])
+  const [promos, setPromos] = useState<Promo[]>([])
+  const [activeUsersCount, setActiveUsersCount] = useState(1234)
+  const [customerId, setCustomerId] = useState("")
+  const [customerName, setCustomerName] = useState("")
+  const [customerEmail, setCustomerEmail] = useState("")
+  const [customerPhone, setCustomerPhone] = useState("")
+  const [customerCreatedAt, setCustomerCreatedAt] = useState("")
   const [isLoading, setIsLoading] = useState(true)
 
   // Fetch initial data from backend
@@ -45,16 +84,42 @@ export function DataProvider({ children }: { children: ReactNode }) {
     let isMounted = true;
     const controller = new AbortController();
 
+    const mapBackendUMKMToFrontend = (u: any): UMKM => ({
+      id: u.id,
+      name: u.name,
+      description: u.description || "",
+      owner: "Pemilik Toko",
+      location: u.location,
+      rating: u.rating || 0,
+      isApproved: u.status === "approved",
+      isPending: u.status === "pending",
+      createdAt: u.created_at || new Date().toISOString(),
+      image: u.image_url || "/placeholder.jpg",
+      menu: (u.menu_items || []).map((m: any) => ({
+        id: m.id,
+        name: m.name,
+        description: m.description || "",
+        price: parseFloat(m.price) || 0,
+        stock: 99,
+        category: m.category || "Umum",
+        image: m.image_url || "/placeholder.jpg",
+        isAvailable: m.is_available ?? true,
+      })),
+      suspensionReason: u.rejection_reason || undefined,
+    });
+
     const fetchData = async () => {
       try {
         const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
         
         // Fetch Approved
         const approvedRes = await fetch(`${backendUrl}/umkm?limit=50`, { signal: controller.signal });
+        let approvedResData: any = [];
         if (approvedRes.ok) {
           const data = await approvedRes.json();
-          if (isMounted && Array.isArray(data) && data.length > 0) {
-            setApprovedUMKMs(data);
+          if (isMounted && Array.isArray(data)) {
+            setApprovedUMKMs(data.map(mapBackendUMKMToFrontend));
+            approvedResData = data;
           }
         }
 
@@ -63,7 +128,124 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (pendingRes.ok) {
           const data = await pendingRes.json();
           if (isMounted && Array.isArray(data)) {
-            setPending(data);
+            setPending(data.map(mapBackendUMKMToFrontend));
+          }
+        }
+
+        // Fetch Suspended (Admin only)
+        const suspendedRes = await fetch(`${backendUrl}/umkm/admin/suspended`, { signal: controller.signal });
+        if (suspendedRes.ok) {
+          const data = await suspendedRes.json();
+          if (isMounted && Array.isArray(data)) {
+            setSuspendedUMKMs(data.map(mapBackendUMKMToFrontend));
+          }
+        }
+
+        // Fetch Active Users Count
+        const usersCountRes = await fetch(`${backendUrl}/users/count`, { signal: controller.signal });
+        if (usersCountRes.ok) {
+          const count = await usersCountRes.json();
+          if (isMounted && typeof count === "number") {
+            setActiveUsersCount(count);
+          }
+        }
+
+        // Fetch Customer from localStorage (real user dari auth)
+        let currentCustomerId = "";
+        const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          if (isMounted) {
+            setCustomerId(userData.id || "");
+            setCustomerName(userData.full_name || "");
+            setCustomerEmail(userData.email || "");
+            setCustomerPhone(userData.phone || "");
+            setCustomerCreatedAt(userData.created_at || "");
+            currentCustomerId = userData.id || "";
+          }
+        } else {
+          // Fallback ke mock student
+          const mockStudentEmail = "student1@apps.ipb.ac.id";
+          const customerRes = await fetch(`${backendUrl}/users/email/${mockStudentEmail}`, { signal: controller.signal });
+          if (customerRes.ok) {
+            const customerData = await customerRes.json();
+            if (isMounted) {
+              setCustomerId(customerData.id);
+              setCustomerName(customerData.full_name);
+              setCustomerEmail(customerData.email || "");
+              setCustomerPhone(customerData.phone || "");
+              setCustomerCreatedAt(customerData.created_at || "");
+              currentCustomerId = customerData.id;
+            }
+          }
+        }
+
+        // Fetch Promos
+        const promosRes = await fetch(`${backendUrl}/promos`, { signal: controller.signal });
+        if (promosRes.ok) {
+          const promosData = await promosRes.json();
+          if (isMounted && Array.isArray(promosData)) {
+            setPromos(promosData);
+          }
+        }
+
+        // Fetch All Orders
+        const ordersRes = await fetch(`${backendUrl}/orders/all`, { signal: controller.signal });
+        if (ordersRes.ok) {
+          const ordersData = await ordersRes.json();
+          if (isMounted && Array.isArray(ordersData)) {
+            // Map backend OrderResponse to frontend Order
+            // Wait, we need to lookup UMKM and MenuItem
+            // We'll do this in a separate state update or inside a function
+            const mappedOrders: Order[] = ordersData.map((o: any) => {
+              // Find UMKM and MenuItem
+              let matchedMenuItem: MenuItem | undefined = undefined;
+              let vendorName = "Unknown Vendor";
+              let vendorLocation = "";
+              
+              if (o.items && o.items.length > 0) {
+                 const firstItem = o.items[0];
+                 // Find from approvedRes data
+                 approvedResData?.forEach((u: any) => {
+                    const m = u.menu_items?.find((mi: any) => mi.id === firstItem.menu_item_id);
+                    if (m) {
+                       matchedMenuItem = {
+                          id: m.id,
+                          name: m.name,
+                          description: m.description || "",
+                          price: parseFloat(m.price),
+                          stock: 99, // mock stock
+                          category: m.category,
+                          image: m.image_url || "/food/placeholder.jpg",
+                          isAvailable: m.is_available
+                       };
+                       vendorName = u.name;
+                       vendorLocation = u.location;
+                    }
+                 });
+              }
+
+              return {
+                id: o.id,
+                menuItem: matchedMenuItem ? {
+                  ...(matchedMenuItem as MenuItem),
+                  vendorName,
+                  vendorId: o.umkm_id,
+                  vendorLocation
+                } : {
+                  id: "unknown", name: "Unknown Item", description: "", price: 0, stock: 0, category: "", image: "", isAvailable: false, vendorName: "Unknown", vendorId: o.umkm_id
+                },
+                quantity: o.items && o.items.length > 0 ? o.items[0].quantity : 1,
+                pickupTime: new Date(o.pickup_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                totalPrice: parseFloat(o.total_price),
+                status: o.status,
+                createdAt: o.created_at,
+                customerName: currentCustomerId === o.customer_id ? (currentCustomerId ? "Student IPB 1" : "Customer") : "Customer",
+                paymentProof: o.payment_proof || undefined,
+                notes: o.notes || undefined,
+              };
+            });
+            setOrders(mappedOrders);
           }
         }
       } catch (err: any) {
@@ -200,19 +382,131 @@ export function DataProvider({ children }: { children: ReactNode }) {
     )
   }
 
-  const addOrder = (orderData: Omit<Order, "id" | "createdAt" | "status">): Order => {
+  const addOrder = async (orderData: Omit<Order, "id" | "createdAt" | "status">): Promise<Order> => {
+    const tempId = `ORD-TEMP-${Date.now()}`;
     const newOrder: Order = {
       ...orderData,
-      id: `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-      status: "confirmed",
+      id: tempId,
+      status: "pending",
       createdAt: new Date().toISOString(),
+      customerName: customerName || orderData.customerName,
     }
-    setOrders(prev => [...prev, newOrder])
     
-    // Update stock
+    // Add optimistic order to state
+    setOrders(prev => [newOrder, ...prev])
+    
+    // Calculate pickup time as a future date to match backend schema (datetime)
+    const today = new Date();
+    const [hours, minutes] = orderData.pickupTime.split(':');
+    today.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+    
+    const payload = {
+      umkm_id: orderData.menuItem.vendorId,
+      pickup_time: today.toISOString(),
+      notes: orderData.notes || "",
+      promo_code: orderData.promoCode || null,
+      items: [
+        {
+          menu_item_id: orderData.menuItem.id,
+          quantity: orderData.quantity
+        }
+      ]
+    };
+
+    // Update stock locally
     updateMenuStock(orderData.menuItem.vendorId, orderData.menuItem.id, orderData.quantity)
+
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+      const res = await fetch(`${backendUrl}/orders?customer_id=${customerId || "default"}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        const serverOrder: Order = {
+          ...newOrder,
+          id: data.id,
+          status: data.status,
+          totalPrice: data.total_price ? parseFloat(data.total_price) : newOrder.totalPrice,
+          notes: data.notes || newOrder.notes,
+          createdAt: data.created_at,
+          paymentProof: data.payment_proof || undefined
+        };
+        // Replace temp order with actual order from server
+        setOrders(prev => prev.map(o => o.id === tempId ? serverOrder : o));
+        return serverOrder;
+      }
+    } catch (err) {
+      console.error("Failed to submit order to backend:", err);
+    }
     
-    return newOrder
+    // Fallback to local order if backend fails
+    return newOrder;
+  }
+
+  const uploadPaymentProof = async (orderId: string, file: File): Promise<boolean> => {
+    // Update status locally immediately for optimistic UI
+    setOrders(prev =>
+      prev.map(order =>
+        order.id === orderId ? { ...order, status: "confirmed" } : order
+      )
+    )
+
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(`${backendUrl}/orders/${orderId}/payment-proof`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const updatedOrder = await res.json();
+        // Update local state with actual path
+        setOrders(prev =>
+          prev.map(order =>
+            order.id === orderId 
+              ? { 
+                  ...order, 
+                  status: updatedOrder.status, 
+                  paymentProof: updatedOrder.payment_proof 
+                } 
+              : order
+          )
+        );
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("Failed to upload payment proof:", err);
+      // Fallback: simulate local upload with base64 for fallback/offline mode
+      return new Promise<boolean>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64Data = reader.result as string;
+          setOrders(prev =>
+            prev.map(order =>
+              order.id === orderId 
+                ? { 
+                    ...order, 
+                    status: "confirmed", 
+                    paymentProof: base64Data 
+                  } 
+                : order
+            )
+          );
+          resolve(true);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
   }
 
   const updateOrderStatus = (orderId: string, status: Order["status"]) => {
@@ -221,6 +515,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         order.id === orderId ? { ...order, status } : order
       )
     )
+
+    // Send update to backend
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+    fetch(`${backendUrl}/orders/${orderId}/status?status=${status}`, {
+      method: "PATCH",
+    }).catch(err => console.error("Failed to update order status:", err));
   }
 
   return (
@@ -229,6 +529,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
       pendingUMKMs: pending,
       suspendedUMKMs,
       orders,
+      promos,
+      activeUsersCount,
+      customerId,
+      customerName,
+      customerEmail,
+      customerPhone,
+      customerCreatedAt,
+      totalOrdersCount: orders.length,
+      completedOrdersCount: orders.filter(o => o.status === "completed").length,
+      totalSpent: orders.filter(o => o.status === "completed").reduce((acc, o) => acc + o.totalPrice, 0),
       approveUMKM, 
       rejectUMKM,
       suspendUMKM,
@@ -237,6 +547,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       deleteMenuItem,
       addMenuItem,
       addOrder,
+      uploadPaymentProof,
       updateOrderStatus,
       updateMenuStock
     }}>

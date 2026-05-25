@@ -33,6 +33,10 @@ class IUMKMService(ABC):
     @abstractmethod
     def list_pending_umkms(self) -> List[UMKMResponse]:
         pass
+
+    @abstractmethod
+    def list_suspended_umkms(self) -> List[UMKMResponse]:
+        pass
     
     @abstractmethod
     def update_umkm(self, umkm_id: str, umkm_data: UMKMUpdate) -> UMKMResponse:
@@ -118,6 +122,13 @@ class UMKMService(IUMKMService):
         Mengambil daftar UMKM pending (untuk admin review)
         """
         umkms = self.db.query(UMKM).filter(UMKM.status == "pending").all()
+        return [UMKMResponse.from_orm(u) for u in umkms]
+
+    def list_suspended_umkms(self) -> List[UMKMResponse]:
+        """
+        Mengambil daftar UMKM yang ditangguhkan (suspended)
+        """
+        umkms = self.db.query(UMKM).filter(UMKM.status == "suspended").all()
         return [UMKMResponse.from_orm(u) for u in umkms]
     
     def update_umkm(self, umkm_id: str, umkm_data: UMKMUpdate) -> UMKMResponse:

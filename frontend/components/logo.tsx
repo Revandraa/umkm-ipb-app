@@ -68,7 +68,7 @@ export function Logo({ className = "", size = "md", invert = false }: LogoProps)
                     </span>
                 </div>
                 <div className="flex items-center mt-1.5">
-                    <span className={`font-bold rounded-full tracking-wider uppercase leading-none ${dimensions.badge} backdrop-blur-sm shadow-2xs ${invert ? "text-accent bg-accent/10 border border-accent/20" : "text-primary bg-primary/10 border border-primary/20"}`}>
+                    <span className={`font-bold rounded-full tracking-wider uppercase leading-none ${dimensions.badge} backdrop-blur-sm shadow-2xs ${invert ? "text-white bg-white/15 border border-white/25" : "text-primary bg-primary/10 border border-primary/20"}`}>
                         Food Ecosystem
                     </span>
                 </div>

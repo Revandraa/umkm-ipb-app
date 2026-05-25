@@ -81,6 +81,7 @@ class Order(Base):
     total_price = Column(DECIMAL(12, 2), nullable=False)
     pickup_time = Column(DateTime, nullable=False)
     notes = Column(Text)
+    payment_proof = Column(String(512), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -137,3 +138,27 @@ class Transaction(Base):
     
     # Relationships
     order = relationship("Order", back_populates="transactions")
+
+
+class Promo(Base):
+    __tablename__ = "promos"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    title = Column(String(255), nullable=False)
+    description = Column(Text)
+    code = Column(String(50), unique=True, nullable=False)
+    discount_type = Column(String(20), nullable=False, default="percent")  # "percent" | "fixed"
+    discount_value = Column(DECIMAL(10, 2), nullable=False)
+    min_order = Column(DECIMAL(12, 2), default=0)
+    max_discount = Column(DECIMAL(12, 2), nullable=True)  # khusus discount tipe persen
+    umkm_id = Column(String(36), ForeignKey("umkm.id", ondelete="SET NULL"), nullable=True)  # null = berlaku semua UMKM
+    image_url = Column(String(512))
+    valid_from = Column(DateTime, nullable=False, default=datetime.utcnow)
+    valid_until = Column(DateTime, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    umkm = relationship("UMKM", foreign_keys=[umkm_id])
+

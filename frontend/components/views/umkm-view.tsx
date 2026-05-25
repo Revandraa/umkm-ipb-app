@@ -58,7 +58,8 @@ import {
   Utensils,
   PlayCircle,
   Check,
-  Ban
+  Ban,
+  FileText
 } from "lucide-react"
 import { formatPrice } from "@/lib/mock-data"
 import type { MenuItem } from "@/lib/mock-data"
@@ -255,6 +256,13 @@ export function UMKMView() {
   }
 
   // Order management functions
+  const getImageUrl = (path: string | undefined) => {
+    if (!path) return ""
+    if (path.startsWith("data:") || path.startsWith("http://") || path.startsWith("https://")) return path
+    const backendUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1").replace("/api/v1", "")
+    return `${backendUrl}${path}`
+  }
+
   const handleAcceptOrder = (order: Order) => {
     updateOrderStatus(order.id, "ready")
     toast.success("Pesanan diterima!", {
@@ -270,7 +278,7 @@ export function UMKMView() {
   }
 
   const handleRejectOrder = (order: Order) => {
-    updateOrderStatus(order.id, "pending")
+    updateOrderStatus(order.id, "cancelled")
     toast.error("Pesanan ditolak", {
       description: `Pesanan ${order.id} telah ditolak`,
     })
@@ -283,14 +291,16 @@ export function UMKMView() {
 
   const getStatusBadge = (status: Order["status"]) => {
     switch (status) {
-      case "confirmed":
-        return <Badge className="bg-warning/20 text-warning border-warning/30">Pesanan Baru</Badge>
-      case "ready":
-        return <Badge className="bg-primary/20 text-primary border-primary/30">Sedang Diproses</Badge>
-      case "completed":
-        return <Badge className="bg-success/20 text-success border-success/30">Selesai</Badge>
       case "pending":
-        return <Badge className="bg-destructive/20 text-destructive border-destructive/30">Ditolak</Badge>
+        return <Badge className="bg-warning/20 text-warning border-warning/30 font-semibold">Menunggu Pembayaran</Badge>
+      case "confirmed":
+        return <Badge className="bg-blue-500/15 text-blue-500 border-blue-500/30 font-semibold">Menunggu Verifikasi</Badge>
+      case "ready":
+        return <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/20 font-bold">Diproses (ACC)</Badge>
+      case "completed":
+        return <Badge className="bg-success/20 text-success border-success/20 font-semibold">Selesai</Badge>
+      case "cancelled":
+        return <Badge className="bg-destructive/20 text-destructive border-destructive/30 font-semibold">Ditolak / Batal</Badge>
       default:
         return <Badge variant="secondary">{status}</Badge>
     }
@@ -299,13 +309,15 @@ export function UMKMView() {
   const getStatusIcon = (status: Order["status"]) => {
     switch (status) {
       case "confirmed":
-        return <Bell className="h-5 w-5 text-warning" />
+        return <Bell className="h-5 w-5 text-blue-500" />
       case "ready":
-        return <ChefHat className="h-5 w-5 text-primary" />
+        return <ChefHat className="h-5 w-5 text-emerald-600" />
       case "completed":
         return <CheckCircle2 className="h-5 w-5 text-success" />
-      case "pending":
+      case "cancelled":
         return <XCircle className="h-5 w-5 text-destructive" />
+      case "pending":
+        return <Clock className="h-5 w-5 text-warning" />
       default:
         return <Clock className="h-5 w-5" />
     }
@@ -973,6 +985,43 @@ export function UMKMView() {
                   <span className="font-medium">{selectedOrder.pickupTime}</span>
                 </div>
               </div>
+
+              {/* Catatan Pelanggan */}
+              {selectedOrder.notes && (
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm text-muted-foreground">Catatan Pelanggan</h4>
+                  <div className="p-3 bg-muted/30 rounded-xl flex items-start gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <span className="font-medium text-foreground">{selectedOrder.notes}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Bukti Pembayaran */}
+              {selectedOrder.paymentProof && (
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm text-muted-foreground">Bukti Pembayaran</h4>
+                  <div className="p-3 bg-muted/30 rounded-xl space-y-2 flex flex-col items-center">
+                    <div className="relative w-full aspect-video rounded-lg overflow-hidden border bg-white max-h-60 flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={getImageUrl(selectedOrder.paymentProof)}
+                        alt="Bukti Pembayaran"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <a
+                      href={getImageUrl(selectedOrder.paymentProof)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary font-bold hover:underline flex items-center gap-1 mt-1"
+                    >
+                      <Eye className="h-3 w-3" />
+                      Buka Bukti di Tab Baru
+                    </a>
+                  </div>
+                </div>
+              )}
 
               {/* Order Time */}
               <div className="p-3 bg-muted/30 rounded-xl flex items-center justify-between text-sm">

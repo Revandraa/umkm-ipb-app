@@ -56,14 +56,14 @@ function MainContent() {
     <>
       {isAuthenticated ? (
         <>
-          <Header onLogout={handleLogout} />
+          <Header onLogout={handleLogout} user={user} />
           <main className="pt-16">
-            {role === "mahasiswa" && <MahasiswaView />}
+            {role === "mahasiswa" && <MahasiswaView onLogout={handleLogout} />}
             {role === "umkm" && <UMKMView />}
             {role === "umkm-register" && <UMKMRegistrationView />}
             {role === "admin" && <AdminView />}
           </main>
-          <Footer />
+          <Footer className={role === "umkm" ? "lg:ml-72" : ""} />
         </>
       ) : (
         <>

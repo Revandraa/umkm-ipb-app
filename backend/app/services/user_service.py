@@ -41,6 +41,10 @@ class IUserService(ABC):
     def delete_user(self, user_id: str) -> bool:
         pass
 
+    @abstractmethod
+    def count_users(self) -> int:
+        pass
+
 
 class UserService(IUserService):
     """Implementasi User Service"""
@@ -121,3 +125,9 @@ class UserService(IUserService):
         self.db.delete(db_user)
         self.db.commit()
         return True
+        
+    def count_users(self) -> int:
+        """
+        Menghitung total user
+        """
+        return self.db.query(User).count()

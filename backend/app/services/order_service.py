@@ -26,6 +26,10 @@ class IOrderService(ABC):
         pass
     
     @abstractmethod
+    def get_all_orders(self) -> List[OrderResponse]:
+        pass
+    
+    @abstractmethod
     def get_customer_orders(self, customer_id: str) -> List[OrderResponse]:
         pass
     
@@ -39,6 +43,10 @@ class IOrderService(ABC):
     
     @abstractmethod
     def cancel_order(self, order_id: str) -> OrderResponse:
+        pass
+
+    @abstractmethod
+    def upload_payment_proof(self, order_id: str, file_path: str) -> OrderResponse:
         pass
 
 
@@ -88,6 +96,52 @@ class OrderService(IOrderService):
         # Hitung total harga
         total_price = self._calculate_total_price(order_data.items, self.db)
         
+        # Validasi & potongan promo
+        if order_data.promo_code:
+            from app.models.database import Promo
+            promo = self.db.query(Promo).filter(
+                Promo.code == order_data.promo_code,
+                Promo.is_active == True
+            ).first()
+            
+            if not promo:
+                raise ValueError(f"Kode promo '{order_data.promo_code}' tidak valid atau tidak aktif")
+            
+            # Cek masa berlaku
+            now = datetime.utcnow()
+            if now < promo.valid_from or now > promo.valid_until:
+                raise ValueError(f"Kode promo '{order_data.promo_code}' sudah kedaluwarsa")
+            
+            # Cek min_order
+            if total_price < Decimal(str(promo.min_order)):
+                raise ValueError(f"Total belanja belum memenuhi batas minimum promo ({promo.min_order})")
+                
+            # Cek umkm_id jika promo khusus UMKM
+            if promo.umkm_id and promo.umkm_id != order_data.umkm_id:
+                raise ValueError(f"Kode promo '{order_data.promo_code}' tidak berlaku untuk UMKM ini")
+                
+            # Hitung potongan harga
+            if promo.discount_type == "percent":
+                discount = total_price * (Decimal(str(promo.discount_value)) / Decimal("100.00"))
+                if promo.max_discount is not None:
+                    discount = min(discount, Decimal(str(promo.max_discount)))
+            else:  # "fixed"
+                discount = Decimal(str(promo.discount_value))
+                
+            # Terapkan diskon ke total harga
+            total_price = max(total_price - discount, Decimal("0.00"))
+            
+            # Tambahkan catatan promo ke dalam notes pesanan
+            promo_msg = f"[Promo: {promo.code} - Potongan Rp {discount:,.0f}]"
+            order_data.notes = f"{promo_msg} {order_data.notes}" if order_data.notes else promo_msg
+        
+        # Validasi waktu pengambilan minimal 15 menit dari sekarang (UTC)
+        # Menggunakan toleransi 870 detik (14.5 menit) untuk latensi jaringan
+        pickup_time_naive = order_data.pickup_time.replace(tzinfo=None) if order_data.pickup_time.tzinfo else order_data.pickup_time
+        now_naive = datetime.utcnow()
+        if (pickup_time_naive - now_naive).total_seconds() < 870:
+            raise ValueError("Waktu pengambilan harus minimal 15 menit dari sekarang")
+        
         # Buat order
         order = Order(
             id=str(uuid.uuid4()),
@@ -134,6 +188,13 @@ class OrderService(IOrderService):
         if db_order:
             return OrderResponse.from_orm(db_order)
         return None
+    
+    def get_all_orders(self) -> List[OrderResponse]:
+        """
+        Mengambil semua order yang ada (untuk keperluan mock frontend)
+        """
+        orders = self.db.query(Order).order_by(Order.created_at.desc()).all()
+        return [OrderResponse.from_orm(o) for o in orders]
     
     def get_customer_orders(self, customer_id: str) -> List[OrderResponse]:
         """
@@ -193,6 +254,23 @@ class OrderService(IOrderService):
             raise ValueError(f"Cannot cancel order in {db_order.status} status")
         
         db_order.status = "cancelled"
+        self.db.commit()
+        self.db.refresh(db_order)
+        return OrderResponse.from_orm(db_order)
+
+    def upload_payment_proof(self, order_id: str, file_path: str) -> OrderResponse:
+        """
+        Upload payment proof and update status to confirmed
+        """
+        db_order = self.db.query(Order).filter(Order.id == order_id).first()
+        if not db_order:
+            raise ValueError(f"Order {order_id} not found")
+        
+        if db_order.status != "pending":
+            raise ValueError(f"Cannot upload payment proof for order in {db_order.status} status")
+        
+        db_order.payment_proof = file_path
+        db_order.status = "confirmed"
         self.db.commit()
         self.db.refresh(db_order)
         return OrderResponse.from_orm(db_order)

@@ -78,7 +78,7 @@ const itemVariants = {
 type ViewTab = "pending" | "verified" | "suspended"
 
 export function AdminView() {
-  const { approvedUMKMs, pendingUMKMs, suspendedUMKMs, approveUMKM, rejectUMKM, suspendUMKM, reactivateUMKM } = useData()
+  const { approvedUMKMs, pendingUMKMs, suspendedUMKMs, activeUsersCount, approveUMKM, rejectUMKM, suspendUMKM, reactivateUMKM } = useData()
   const [selectedUMKM, setSelectedUMKM] = useState<UMKM | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState<ViewTab>("pending")
@@ -377,7 +377,7 @@ export function AdminView() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground font-medium">Pengguna Aktif</p>
-                    <p className="text-3xl font-bold text-foreground">1,234</p>
+                    <p className="text-3xl font-bold text-foreground">{activeUsersCount.toLocaleString("id-ID")}</p>
                   </div>
                 </div>
               </CardContent>

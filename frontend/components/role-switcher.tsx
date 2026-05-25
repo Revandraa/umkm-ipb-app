@@ -44,7 +44,7 @@ export function RoleSwitcher() {
       <DropdownMenuTrigger asChild>
         <Button 
           variant="outline" 
-          className="gap-2 bg-card border-border hover:bg-secondary"
+          className="gap-2 transition-all bg-white/10 text-white border-white/20 hover:bg-white/20 hover:text-white"
         >
           <CurrentIcon className="h-4 w-4" />
           <span className="hidden sm:inline">{currentRole.label}</span>
