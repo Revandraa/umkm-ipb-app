@@ -213,13 +213,24 @@ def seed():
             }
         ]
         
+        umkm_uuid_mapping = {
+            "1": "11111111-1111-1111-1111-111111111111",
+            "2": "22222222-2222-2222-2222-222222222222",
+            "3": "33333333-3333-3333-3333-333333333333",
+            "4": "44444444-4444-4444-4444-444444444444",
+            "5": "55555555-5555-5555-5555-555555555555",
+            "6": "66666666-6666-6666-6666-666666666666",
+            "7": "77777777-7777-7777-7777-777777777777",
+        }
+        
         for umkm_info in umkms_data:
             owner_user = owners.get(umkm_info["owner"])
             if not owner_user:
                 continue
                 
+            umkm_id = umkm_uuid_mapping.get(umkm_info["id"], str(uuid.uuid4()))
             umkm = UMKM(
-                id=umkm_info["id"],
+                id=umkm_id,
                 owner_id=owner_user.id,
                 name=umkm_info["name"],
                 description=umkm_info["description"],
