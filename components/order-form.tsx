@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -167,8 +168,13 @@ export function OrderForm({ item, onBack, onSuccess }: OrderFormProps) {
         {/* Menu Detail Header */}
         <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6">
           <div className="flex flex-col sm:flex-row gap-4">
-            <div className="w-full sm:w-32 h-32 rounded-xl bg-card flex items-center justify-center shrink-0 shadow-sm">
-              <span className="text-5xl">🍽️</span>
+            <div className="w-full sm:w-32 h-32 rounded-xl bg-card overflow-hidden shrink-0 shadow-sm relative">
+              <Image
+                src={item.image}
+                alt={item.name}
+                fill
+                className="object-cover"
+              />
             </div>
             <div className="flex-1">
               <div className="flex items-start justify-between gap-2">
