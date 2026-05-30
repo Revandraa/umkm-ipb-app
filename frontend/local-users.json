@@ -12,5 +12,26 @@
     "password": "Inirepan12345",
     "full_name": "Revandra Athaya Rizkika",
     "role": "customer"
+  },
+  {
+    "id": "11111111-2222-3333-4444-555555555555",
+    "email": "mahasiswa@apps.ipb.ac.id",
+    "password": "MahasiswaIPB123",
+    "full_name": "Mahasiswa IPB",
+    "role": "customer"
+  },
+  {
+    "id": "22222222-3333-4444-5555-666666666666",
+    "email": "butini@apps.ipb.ac.id",
+    "password": "WarungBuTini123",
+    "full_name": "Bu Tini",
+    "role": "umkm_owner"
+  },
+  {
+    "id": "33333333-4444-5555-6666-777777777777",
+    "email": "admin@apps.ipb.ac.id",
+    "password": "AdminIPB123",
+    "full_name": "Admin IPB",
+    "role": "admin"
   }
 ]
