@@ -61,6 +61,9 @@ interface DataContextType {
   uploadPaymentProof: (orderId: string, file: File) => Promise<boolean>
   updateOrderStatus: (orderId: string, status: Order["status"]) => void
   updateMenuStock: (vendorId: string, menuItemId: string, quantity: number) => void
+  addPromo: (promo: Omit<Promo, "id" | "created_at" | "updated_at">) => Promise<Promo>
+  updatePromo: (promoId: string, updates: Partial<Omit<Promo, "id">>) => Promise<Promo>
+  deletePromo: (promoId: string) => Promise<boolean>
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
@@ -180,8 +183,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        // Fetch Promos
-        const promosRes = await fetch(`${backendUrl}/promos`, { signal: controller.signal });
+        // Fetch Promos (try all first for admin/management, fallback to active)
+        let promosRes = await fetch(`${backendUrl}/promos/all`, { signal: controller.signal });
+        if (!promosRes.ok) {
+          promosRes = await fetch(`${backendUrl}/promos`, { signal: controller.signal });
+        }
         if (promosRes.ok) {
           const promosData = await promosRes.json();
           if (isMounted && Array.isArray(promosData)) {
@@ -523,6 +529,65 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }).catch(err => console.error("Failed to update order status:", err));
   }
 
+  const addPromo = async (promoData: Omit<Promo, "id" | "created_at" | "updated_at">): Promise<Promo> => {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+    const res = await fetch(`${backendUrl}/promos`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...promoData,
+        discount_value: Number(promoData.discount_value),
+        min_order: Number(promoData.min_order),
+        max_discount: promoData.max_discount ? Number(promoData.max_discount) : null,
+      }),
+    });
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.detail || "Gagal membuat promo baru");
+    }
+    const newPromo = await res.json();
+    setPromos(prev => [newPromo, ...prev]);
+    return newPromo;
+  };
+
+  const updatePromo = async (promoId: string, updates: Partial<Omit<Promo, "id">>): Promise<Promo> => {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+    const formattedUpdates = { ...updates };
+    if (updates.discount_value !== undefined) formattedUpdates.discount_value = Number(updates.discount_value);
+    if (updates.min_order !== undefined) formattedUpdates.min_order = Number(updates.min_order);
+    if (updates.max_discount !== undefined) formattedUpdates.max_discount = updates.max_discount ? Number(updates.max_discount) : null;
+
+    const res = await fetch(`${backendUrl}/promos/${promoId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formattedUpdates),
+    });
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.detail || "Gagal memperbarui promo");
+    }
+    const updatedPromo = await res.json();
+    setPromos(prev => prev.map(p => p.id === promoId ? updatedPromo : p));
+    return updatedPromo;
+  };
+
+  const deletePromo = async (promoId: string): Promise<boolean> => {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+    const res = await fetch(`${backendUrl}/promos/${promoId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.detail || "Gagal menghapus promo");
+    }
+    setPromos(prev => prev.filter(p => p.id !== promoId));
+    return true;
+  };
+
   return (
     <DataContext.Provider value={{ 
       approvedUMKMs, 
@@ -549,7 +614,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       addOrder,
       uploadPaymentProof,
       updateOrderStatus,
-      updateMenuStock
+      updateMenuStock,
+      addPromo,
+      updatePromo,
+      deletePromo
     }}>
       {children}
     </DataContext.Provider>

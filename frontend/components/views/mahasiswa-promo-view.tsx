@@ -31,10 +31,12 @@ function getDaysRemaining(validUntil: string): number {
 }
 
 function PromoCard({ promo }: { promo: Promo }) {
+  const { approvedUMKMs } = useData()
   const [copied, setCopied] = useState(false)
   const daysLeft = getDaysRemaining(promo.valid_until)
   const isExpiringSoon = daysLeft <= 3
   const isPercent = promo.discount_type === "percent"
+  const targetUMKM = approvedUMKMs.find((u) => u.id === promo.umkm_id)
 
   const handleCopy = () => {
     navigator.clipboard.writeText(promo.code)
@@ -71,9 +73,13 @@ function PromoCard({ promo }: { promo: Promo }) {
               <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl">
                 <Gift className="h-5 w-5 text-white" />
               </div>
-              {promo.umkm_id === null && (
+              {promo.umkm_id === null ? (
                 <Badge className="bg-white/20 text-white border-0 text-xs backdrop-blur-sm">
                   Semua UMKM
+                </Badge>
+              ) : (
+                <Badge className="bg-white/20 text-white border-0 text-xs backdrop-blur-sm">
+                  Khusus: {targetUMKM?.name || "Toko Pilihan"}
                 </Badge>
               )}
             </div>

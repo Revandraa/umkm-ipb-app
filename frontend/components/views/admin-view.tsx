@@ -42,7 +42,13 @@ import {
   MoreVertical,
   Power,
   PowerOff,
-  Star
+  Star,
+  Ticket,
+  Plus,
+  Trash2,
+  Edit,
+  Gift,
+  Percent
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -53,7 +59,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatPrice } from "@/lib/mock-data"
 import type { UMKM } from "@/lib/mock-data"
-import { useData } from "@/lib/data-context"
+import { useData, type Promo } from "@/lib/data-context"
 import { toast } from "sonner"
 import { AdminUMKMDetailModal } from "@/components/admin-umkm-detail-modal"
 
@@ -78,10 +84,140 @@ const itemVariants = {
 type ViewTab = "pending" | "verified" | "suspended"
 
 export function AdminView() {
-  const { approvedUMKMs, pendingUMKMs, suspendedUMKMs, activeUsersCount, approveUMKM, rejectUMKM, suspendUMKM, reactivateUMKM } = useData()
+  const { 
+    approvedUMKMs, 
+    pendingUMKMs, 
+    suspendedUMKMs, 
+    activeUsersCount, 
+    approveUMKM, 
+    rejectUMKM, 
+    suspendUMKM, 
+    reactivateUMKM,
+    promos,
+    addPromo,
+    updatePromo,
+    deletePromo
+  } = useData()
   const [selectedUMKM, setSelectedUMKM] = useState<UMKM | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState<ViewTab>("pending")
+
+  // Tab switch state
+  const [mainTab, setMainTab] = useState<"umkm" | "promo">("umkm")
+
+  // Promo Management State
+  const [promoSearchQuery, setPromoSearchQuery] = useState("")
+  const [isPromoModalOpen, setIsPromoModalOpen] = useState(false)
+  const [editingPromo, setEditingPromo] = useState<Promo | null>(null)
+  
+  // Promo Form Fields State
+  const [promoTitle, setPromoTitle] = useState("")
+  const [promoDescription, setPromoDescription] = useState("")
+  const [promoCode, setPromoCode] = useState("")
+  const [promoDiscountType, setPromoDiscountType] = useState<"percent" | "fixed">("percent")
+  const [promoDiscountValue, setPromoDiscountValue] = useState("")
+  const [promoMinOrder, setPromoMinOrder] = useState("0")
+  const [promoMaxDiscount, setPromoMaxDiscount] = useState("")
+  const [promoUmkmId, setPromoUmkmId] = useState("") // empty = global
+  const [promoValidFrom, setPromoValidFrom] = useState(new Date().toISOString().substring(0, 10))
+  const [promoValidUntil, setPromoValidUntil] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10))
+  const [promoIsActive, setPromoIsActive] = useState(true)
+
+  // Promo deletion state
+  const [deletePromoDialogOpen, setDeletePromoDialogOpen] = useState(false)
+  const [promoToDelete, setPromoToDelete] = useState<Promo | null>(null)
+
+  // Promo Handlers
+  const openNewPromoModal = () => {
+    setEditingPromo(null)
+    setPromoTitle("")
+    setPromoDescription("")
+    setPromoCode("")
+    setPromoDiscountType("percent")
+    setPromoDiscountValue("")
+    setPromoMinOrder("0")
+    setPromoMaxDiscount("")
+    setPromoUmkmId("")
+    setPromoValidFrom(new Date().toISOString().substring(0, 10))
+    setPromoValidUntil(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10))
+    setPromoIsActive(true)
+    setIsPromoModalOpen(true)
+  }
+
+  const openEditPromoModal = (promo: Promo) => {
+    setEditingPromo(promo)
+    setPromoTitle(promo.title)
+    setPromoDescription(promo.description || "")
+    setPromoCode(promo.code)
+    setPromoDiscountType(promo.discount_type)
+    setPromoDiscountValue(promo.discount_value.toString())
+    setPromoMinOrder(promo.min_order.toString())
+    setPromoMaxDiscount(promo.max_discount ? promo.max_discount.toString() : "")
+    setPromoUmkmId(promo.umkm_id || "")
+    setPromoValidFrom(new Date(promo.valid_from).toISOString().substring(0, 10))
+    setPromoValidUntil(new Date(promo.valid_until).toISOString().substring(0, 10))
+    setPromoIsActive(promo.is_active)
+    setIsPromoModalOpen(true)
+  }
+
+  const handleSavePromo = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!promoCode.trim() || !promoTitle.trim() || !promoDiscountValue) {
+      toast.error("Harap isi kode promo, judul, dan nilai potongan")
+      return
+    }
+
+    setIsProcessing(true)
+    try {
+      const payload = {
+        title: promoTitle,
+        description: promoDescription || null,
+        code: promoCode.toUpperCase().replace(/\s+/g, ""),
+        discount_type: promoDiscountType,
+        discount_value: parseFloat(promoDiscountValue),
+        min_order: parseFloat(promoMinOrder) || 0,
+        max_discount: promoMaxDiscount ? parseFloat(promoMaxDiscount) : null,
+        umkm_id: promoUmkmId === "" ? null : promoUmkmId,
+        image_url: editingPromo ? editingPromo.image_url : null,
+        valid_from: new Date(promoValidFrom).toISOString(),
+        valid_until: new Date(promoValidUntil + "T23:59:59").toISOString(),
+        is_active: promoIsActive,
+      }
+
+      if (editingPromo) {
+        await updatePromo(editingPromo.id, payload)
+        toast.success("Promo Berhasil Diperbarui")
+      } else {
+        await addPromo(payload)
+        toast.success("Promo Baru Berhasil Dibuat")
+      }
+      setIsPromoModalOpen(false)
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menyimpan promo")
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const confirmDeletePromo = (promo: Promo) => {
+    setPromoToDelete(promo)
+    setDeletePromoDialogOpen(true)
+  }
+
+  const handleDeletePromo = async () => {
+    if (!promoToDelete) return
+    setIsProcessing(true)
+    try {
+      await deletePromo(promoToDelete.id)
+      toast.success(`Promo "${promoToDelete.code}" berhasil dihapus`)
+      setDeletePromoDialogOpen(false)
+      setPromoToDelete(null)
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menghapus promo")
+    } finally {
+      setIsProcessing(false)
+    }
+  }
   
   // Detail Modal State
   const [detailUMKM, setDetailUMKM] = useState<UMKM | null>(null)
@@ -309,14 +445,46 @@ export function AdminView() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
-              <p className="text-muted-foreground">Kelola persetujuan dan verifikasi UMKM</p>
+              <p className="text-muted-foreground">
+                {mainTab === "umkm" ? "Kelola persetujuan dan verifikasi UMKM" : "Manajemen promo diskon dan potongan harga platform"}
+              </p>
             </div>
           </motion.div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Stats Grid */}
+        {/* Main Tab Switcher */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-muted/60 p-1 rounded-2xl border border-border/50 flex gap-1 w-full max-w-md shadow-inner">
+            <button
+              onClick={() => setMainTab("umkm")}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                mainTab === "umkm"
+                  ? "bg-background text-foreground shadow-md"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Store className="h-4 w-4" />
+              Kelola UMKM
+            </button>
+            <button
+              onClick={() => setMainTab("promo")}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                mainTab === "promo"
+                  ? "bg-background text-foreground shadow-md"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Ticket className="h-4 w-4" />
+              Kelola Promo
+            </button>
+          </div>
+        </div>
+
+        {mainTab === "umkm" ? (
+          <>
+            {/* Stats Grid */}
         <motion.div 
           className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10"
           variants={containerVariants}
@@ -796,6 +964,164 @@ export function AdminView() {
             </CardContent>
           </Card>
         </motion.div>
+          </>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            {/* Header / Search & Add Button */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-card p-5 rounded-2xl border border-border/50 shadow-md">
+              <div className="space-y-1">
+                <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                  <Ticket className="h-5 w-5 text-primary" />
+                  Daftar Promo & Diskon
+                </h2>
+                <p className="text-sm text-muted-foreground">Kelola promo potongan harga dan syarat ketentuannya.</p>
+              </div>
+              <Button onClick={openNewPromoModal} className="rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 gap-1.5 h-11 px-5 shadow-lg shadow-primary/20 shrink-0">
+                <Plus className="h-4 w-4" />
+                Buat Promo Baru
+              </Button>
+            </div>
+
+            {/* Filter / Search Bar */}
+            <div className="relative max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                placeholder="Cari berdasarkan kode, judul, atau deskripsi..."
+                className="pl-12 h-12 rounded-xl"
+                value={promoSearchQuery}
+                onChange={(e) => setPromoSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* Promos Grid */}
+            {promos.filter(p => 
+              p.code.toLowerCase().includes(promoSearchQuery.toLowerCase()) ||
+              p.title.toLowerCase().includes(promoSearchQuery.toLowerCase()) ||
+              (p.description || "").toLowerCase().includes(promoSearchQuery.toLowerCase())
+            ).length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {promos.filter(p => 
+                  p.code.toLowerCase().includes(promoSearchQuery.toLowerCase()) ||
+                  p.title.toLowerCase().includes(promoSearchQuery.toLowerCase()) ||
+                  (p.description || "").toLowerCase().includes(promoSearchQuery.toLowerCase())
+                ).map((promo) => {
+                  const targetUMKM = approvedUMKMs.find(u => u.id === promo.umkm_id)
+                  const isPercent = promo.discount_type === "percent"
+                  
+                  return (
+                    <Card key={promo.id} className={`group rounded-2xl border overflow-hidden hover:shadow-lg transition-all duration-300 ${!promo.is_active ? 'opacity-75 border-muted bg-muted/20' : 'border-border'}`}>
+                      <CardContent className="p-0">
+                        {/* Header Banner */}
+                        <div className={`p-5 text-white bg-gradient-to-br ${
+                          !promo.is_active 
+                            ? 'from-muted-foreground/60 to-muted-foreground/45' 
+                            : new Date(promo.valid_until) < new Date() 
+                              ? 'from-red-500/80 to-rose-600/70' 
+                              : 'from-primary/95 to-indigo-600/85'
+                        } relative overflow-hidden`}>
+                          <div className="absolute -top-6 -right-6 w-20 h-20 bg-white/10 rounded-full blur-xl" />
+                          <div className="flex justify-between items-start mb-2">
+                            <Badge className="bg-white/20 hover:bg-white/20 text-white border-0 text-xs backdrop-blur-sm">
+                              {promo.umkm_id ? `Khusus: ${targetUMKM?.name || 'Toko'}` : 'Berlaku di Semua Toko'}
+                            </Badge>
+                            <Badge className={`border-0 text-xs text-white ${
+                              !promo.is_active 
+                                ? 'bg-zinc-500/70' 
+                                : new Date(promo.valid_until) < new Date() 
+                                  ? 'bg-red-500/90' 
+                                  : 'bg-emerald-500/90'
+                            }`}>
+                              {!promo.is_active 
+                                ? 'Non-aktif' 
+                                : new Date(promo.valid_until) < new Date() 
+                                  ? 'Kedaluwarsa' 
+                                  : 'Aktif'}
+                            </Badge>
+                          </div>
+                          <h3 className="font-bold text-lg truncate drop-shadow-sm">{promo.title}</h3>
+                          <div className="flex items-baseline gap-1 mt-1">
+                            <span className="text-2xl font-extrabold tracking-tight">
+                              {isPercent ? `${promo.discount_value}%` : formatPrice(promo.discount_value)}
+                            </span>
+                            <span className="text-xs text-white/80 font-medium">potongan</span>
+                          </div>
+                        </div>
+
+                        {/* Details */}
+                        <div className="p-5 space-y-4">
+                          <div className="bg-muted/50 border border-dashed border-border rounded-xl px-4 py-2.5 flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">KODE PROMO</span>
+                            <code className="text-sm font-mono font-bold text-primary tracking-wider">{promo.code}</code>
+                          </div>
+
+                          <div className="space-y-2 text-sm">
+                            {promo.description && (
+                              <p className="text-muted-foreground text-xs line-clamp-2 leading-relaxed">
+                                {promo.description}
+                              </p>
+                            )}
+                            <div className="flex justify-between py-1 border-b border-border/40 text-xs">
+                              <span className="text-muted-foreground">Minimal Pembelian</span>
+                              <span className="font-semibold text-foreground">{formatPrice(promo.min_order)}</span>
+                            </div>
+                            {isPercent && promo.max_discount && (
+                              <div className="flex justify-between py-1 border-b border-border/40 text-xs">
+                                <span className="text-muted-foreground">Maksimal Diskon</span>
+                                <span className="font-semibold text-foreground">{formatPrice(promo.max_discount)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between py-1 text-xs">
+                              <span className="text-muted-foreground">Masa Berlaku</span>
+                              <span className="font-medium text-foreground">
+                                {new Date(promo.valid_from).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} - {new Date(promo.valid_until).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: '2-digit' })}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex gap-2 pt-2 border-t border-border/50">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => openEditPromoModal(promo)}
+                              className="flex-1 rounded-xl gap-1 hover:bg-primary/5 hover:text-primary transition-all duration-300"
+                            >
+                              <Edit className="h-4 w-4" />
+                              Edit
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => confirmDeletePromo(promo)}
+                              className="rounded-xl text-destructive hover:bg-destructive/5 hover:text-destructive hover:border-destructive/30"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-16 border-2 border-dashed border-border rounded-2xl bg-card">
+                <Ticket className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                <p className="text-lg font-semibold text-foreground">Tidak Ada Promo</p>
+                <p className="text-muted-foreground">Belum ada promo yang terdaftar atau cocok dengan pencarian Anda.</p>
+                <Button onClick={openNewPromoModal} className="mt-4 rounded-xl">
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Buat Promo Pertama
+                </Button>
+              </div>
+            )}
+          </motion.div>
+        )}
       </div>
 
       {/* UMKM Detail Dialog */}
@@ -1174,6 +1500,218 @@ export function AdminView() {
                   Ya, Aktifkan Kembali
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Promo Form Dialog (Create / Edit) */}
+      <Dialog open={isPromoModalOpen} onOpenChange={setIsPromoModalOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3 text-xl font-bold">
+              <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Gift className="h-5 w-5 text-primary" />
+              </div>
+              {editingPromo ? "Edit Promo" : "Buat Promo Baru"}
+            </DialogTitle>
+            <DialogDescription>
+              Isi formulir di bawah ini untuk {editingPromo ? "memperbarui" : "menambahkan"} promo diskon.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSavePromo} className="space-y-5 my-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field>
+                <FieldLabel htmlFor="promo-code">Kode Promo *</FieldLabel>
+                <Input
+                  id="promo-code"
+                  placeholder="CONTOH: KAMPUSHEMAT"
+                  required
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.toUpperCase().replace(/\s+/g, ""))}
+                  className="rounded-xl uppercase font-mono font-bold tracking-wider"
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="promo-title">Judul Promo *</FieldLabel>
+                <Input
+                  id="promo-title"
+                  placeholder="e.g. Diskon Khusus Maba"
+                  required
+                  value={promoTitle}
+                  onChange={(e) => setPromoTitle(e.target.value)}
+                  className="rounded-xl"
+                />
+              </Field>
+            </div>
+
+            <Field>
+              <FieldLabel htmlFor="promo-desc">Deskripsi & Ketentuan</FieldLabel>
+              <Textarea
+                id="promo-desc"
+                placeholder="Jelaskan detail syarat & ketentuan promo di sini..."
+                value={promoDescription}
+                onChange={(e) => setPromoDescription(e.target.value)}
+                className="rounded-xl min-h-[80px]"
+              />
+            </Field>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field>
+                <FieldLabel htmlFor="discount-type">Tipe Potongan</FieldLabel>
+                <select
+                  id="discount-type"
+                  value={promoDiscountType}
+                  onChange={(e) => setPromoDiscountType(e.target.value as "percent" | "fixed")}
+                  className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring animate-none"
+                >
+                  <option value="percent">Persentase (%)</option>
+                  <option value="fixed">Nominal Rupiah (Rp)</option>
+                </select>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="discount-value">Nilai Potongan *</FieldLabel>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-semibold">
+                    {promoDiscountType === "percent" ? "%" : "Rp"}
+                  </span>
+                  <Input
+                    id="discount-value"
+                    type="number"
+                    min="1"
+                    required
+                    placeholder={promoDiscountType === "percent" ? "10" : "5000"}
+                    value={promoDiscountValue}
+                    onChange={(e) => setPromoDiscountValue(e.target.value)}
+                    className="pl-10 rounded-xl"
+                  />
+                </div>
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field>
+                <FieldLabel htmlFor="min-order">Minimal Pembelian (Rp)</FieldLabel>
+                <Input
+                  id="min-order"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={promoMinOrder}
+                  onChange={(e) => setPromoMinOrder(e.target.value)}
+                  className="rounded-xl"
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="max-discount">
+                  Maksimal Potongan (Rp) {promoDiscountType === "fixed" && "(Tidak Aktif)"}
+                </FieldLabel>
+                <Input
+                  id="max-discount"
+                  type="number"
+                  min="1"
+                  disabled={promoDiscountType === "fixed"}
+                  placeholder="e.g. 10000 (kosongkan jika tanpa batas)"
+                  value={promoMaxDiscount}
+                  onChange={(e) => setPromoMaxDiscount(e.target.value)}
+                  className="rounded-xl"
+                />
+              </Field>
+            </div>
+
+            <Field>
+              <FieldLabel htmlFor="promo-target">Target Toko (Keterangan Promo Bisa Digunakan di Toko Apa Saja)</FieldLabel>
+              <select
+                id="promo-target"
+                value={promoUmkmId}
+                onChange={(e) => setPromoUmkmId(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring animate-none"
+              >
+                <option value="">Semua Toko (Promo Global)</option>
+                {approvedUMKMs.map((umkm) => (
+                  <option key={umkm.id} value={umkm.id}>
+                    Khusus Toko: {umkm.name} ({umkm.location})
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field>
+                <FieldLabel htmlFor="valid-from">Tanggal Mulai</FieldLabel>
+                <Input
+                  id="valid-from"
+                  type="date"
+                  required
+                  value={promoValidFrom}
+                  onChange={(e) => setPromoValidFrom(e.target.value)}
+                  className="rounded-xl"
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="valid-until">Tanggal Berakhir</FieldLabel>
+                <Input
+                  id="valid-until"
+                  type="date"
+                  required
+                  value={promoValidUntil}
+                  onChange={(e) => setPromoValidUntil(e.target.value)}
+                  className="rounded-xl"
+                />
+              </Field>
+            </div>
+
+            <div className="flex items-center gap-3 py-1.5 px-3 bg-muted/40 rounded-xl">
+              <input
+                id="promo-active-toggle"
+                type="checkbox"
+                checked={promoIsActive}
+                onChange={(e) => setPromoIsActive(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <label htmlFor="promo-active-toggle" className="text-sm font-medium text-foreground cursor-pointer select-none">
+                Aktifkan Promo ini (Bisa langsung digunakan oleh mahasiswa)
+              </label>
+            </div>
+
+            <DialogFooter className="gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setIsPromoModalOpen(false)} className="rounded-xl">
+                Batal
+              </Button>
+              <Button type="submit" disabled={isProcessing} className="rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 text-primary-foreground">
+                {isProcessing ? "Menyimpan..." : "Simpan Promo"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Promo Dialog */}
+      <Dialog open={deletePromoDialogOpen} onOpenChange={setDeletePromoDialogOpen}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-xl bg-destructive/15 flex items-center justify-center">
+                <Trash2 className="h-5 w-5 text-destructive" />
+              </div>
+              Hapus Promo
+            </DialogTitle>
+            <DialogDescription>
+              Apakah Anda yakin ingin menghapus promo dengan kode &quot;{promoToDelete?.code}&quot;? Tindakan ini tidak dapat dibatalkan.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeletePromoDialogOpen(false)} disabled={isProcessing} className="rounded-xl">
+              Batal
+            </Button>
+            <Button variant="destructive" onClick={handleDeletePromo} disabled={isProcessing} className="rounded-xl">
+              {isProcessing ? "Menghapus..." : "Ya, Hapus Promo"}
             </Button>
           </DialogFooter>
         </DialogContent>

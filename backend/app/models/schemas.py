@@ -2,7 +2,7 @@
 Pydantic schemas untuk data validation dan API responses
 """
 # pyrefly: ignore [missing-import]
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List
 from datetime import datetime
 from decimal import Decimal
@@ -282,6 +282,14 @@ class PromoResponse(PromoBase):
     id: str
     created_at: datetime
     updated_at: datetime
+
+    @field_validator('id', 'umkm_id', mode='before')
+    @classmethod
+    def convert_uuid_to_str(cls, v):
+        import uuid
+        if isinstance(v, uuid.UUID):
+            return str(v)
+        return v
 
     class Config:
         from_attributes = True

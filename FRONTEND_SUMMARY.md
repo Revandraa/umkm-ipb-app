@@ -1,4 +1,4 @@
-﻿# FRONTEND SUMMARY — UMKM IPB Food Ordering Platform
+# FRONTEND SUMMARY — UMKM IPB Food Ordering Platform
 
 > Mata Kuliah: Analisis & Desain Sistem (ADS)  
 > Versi: 1.0  
@@ -51,9 +51,9 @@ State yang dikelola:
 | `pendingUMKMs` | `UMKM[]` | `GET /api/v1/umkm/admin/pending` |
 | `suspendedUMKMs` | `UMKM[]` | `GET /api/v1/umkm/admin/suspended` |
 | `orders` | `Order[]` | `GET /api/v1/orders/all` |
-| `promos` | `Promo[]` | `GET /api/v1/promos` |
-| `customerId` | `string` | `localStorage` (user login) |
-| `activeUsersCount` | `number` | `GET /api/v1/users/count` |
+| `promos`           | `Promo[]`     | `GET /api/v1/promos/all` (fallback ke `/promos`) |
+| `customerId`       | `string`      | `localStorage` (user login)        |
+| `activeUsersCount` | `number`      | `GET /api/v1/users/count`          |
 
 Actions/Methods yang diekspos:
 | Method | HTTP Call | Deskripsi |
@@ -68,6 +68,9 @@ Actions/Methods yang diekspos:
 | `addMenuItem()` | (local state only) | Tambah menu item (optimistic) |
 | `updateMenuItem()` | (local state only) | Edit menu item |
 | `deleteMenuItem()` | (local state only) | Hapus menu item |
+| `addPromo()` | `POST /api/v1/promos` | Membuat promo baru (Admin) |
+| `updatePromo()` | `PATCH /api/v1/promos/{id}` | Mengedit detail promo (Admin) |
+| `deletePromo()` | `DELETE /api/v1/promos/{id}` | Menghapus promo (Admin) |
 
 #### RoleContext (`lib/role-context.tsx`)
 

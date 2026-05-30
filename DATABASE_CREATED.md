@@ -2,7 +2,7 @@
 
 ## Status: COMPLETE
 
-All 7 tables have been successfully created and configured in Supabase with proper indexes and relationships.
+All 8 tables have been successfully created and configured in Supabase with proper indexes and relationships.
 
 ---
 
@@ -106,6 +106,26 @@ All 7 tables have been successfully created and configured in Supabase with prop
 - **Indexes**: `idx_transactions_order_id`, `idx_transactions_status`
 - **Relationships**: Cascade delete from orders
 
+### 8. **promos** Table
+- Stores platform and shop-specific promo discount codes
+- Columns:
+  - `id` (VARCHAR/UUID) - Primary key
+  - `title` (VARCHAR) - Promo title
+  - `description` (TEXT) - Terms and conditions / description
+  - `code` (VARCHAR) - Unique code (uppercase)
+  - `discount_type` (VARCHAR) - percent/fixed
+  - `discount_value` (DECIMAL) - discount amount
+  - `min_order` (DECIMAL) - minimum order amount required
+  - `max_discount` (DECIMAL) - maximum discount limit (for percent type)
+  - `umkm_id` (VARCHAR/UUID) - Foreign key to umkm (nullable, null means global)
+  - `image_url` (VARCHAR) - optional promo image URL
+  - `valid_from` (TIMESTAMPTZ) - validity start date
+  - `valid_until` (TIMESTAMPTZ) - validity end date
+  - `is_active` (BOOLEAN) - active toggle
+  - `created_at`, `updated_at` (TIMESTAMPTZ)
+- **Indexes**: `idx_promos_code` (unique), `idx_promos_umkm_id`
+- **Relationships**: Set null from umkm
+
 ---
 
 ## Entity Relationship Diagram
@@ -167,6 +187,7 @@ All 7 tables have been successfully created and configured in Supabase with prop
 Additional Tables:
 - reviews: (customer_id FK → users), (umkm_id FK → umkm), (order_id FK → orders)
 - transactions: (order_id FK → orders)
+- promos: (umkm_id FK → umkm, nullable)
 ```
 
 ---
@@ -194,5 +215,6 @@ Backend FastAPI dapat langsung menjalankan queries ke database ini dengan:
 5. **Order Status Updates**: State machine (pending → confirmed → ready → completed)
 6. **Review System**: Add ratings dan comments
 7. **Payment Tracking**: Record transactions
+8. **Promo Management**: Create, view, update, delete promos and validate them during checkout
 
 Database siap untuk production dengan proper constraints, indexes, dan relationships!

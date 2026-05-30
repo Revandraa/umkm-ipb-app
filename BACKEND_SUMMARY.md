@@ -1,4 +1,4 @@
-﻿# BACKEND SUMMARY — UMKM IPB Food Ordering Platform
+# BACKEND SUMMARY — UMKM IPB Food Ordering Platform
 > Mata Kuliah: Analisis & Desain Sistem (ADS)  
 > Versi: 2.0 (Updated)  
 > Status: Production-ready — deployed di Render.com, database Supabase (PostgreSQL)
@@ -217,7 +217,7 @@ valid_transitions = {
 }
 ```
 
-### 5.2 Promo Validation Logic
+### 5.2 Promo Validation Logic & Coercion
 Saat `create_order()` dipanggil, jika ada `promo_code`:
 1. Cek kode valid dan aktif di database
 2. Cek masa berlaku (`valid_from` ≤ `now` ≤ `valid_until`)
@@ -225,6 +225,8 @@ Saat `create_order()` dipanggil, jika ada `promo_code`:
 4. Cek scope UMKM (promo global vs. promo khusus UMKM)
 5. Hitung potongan: `percent` (dengan `max_discount`) atau `fixed`
 6. Tulis catatan promo ke `notes` pesanan
+
+*Catatan Tipe Data (Supabase)*: Supabase menyimpan ID sebagai objek UUID di PostgreSQL. Agar skema Pydantic (`PromoResponse`) kompatibel dengan data yang dikembalikan SQLAlchemy tanpa memicu `ValidationError` (Internal Server Error 500), ditambahkan `@field_validator('id', 'umkm_id', mode='before')` di `schemas.py` untuk mengonversi UUID ke string secara otomatis sebelum divalidasi.
 
 ### 5.3 Payment Proof Upload
 - File di-upload sebagai `multipart/form-data`
