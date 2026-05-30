@@ -92,7 +92,7 @@ User ──► UMKM ──► MenuItem
           │            └──► OrderItem ─┐
           └──► Order ◄─────────────────┘
                    └──► Transaction
-User ──► Review ──► UMKM
+User ──► Review (Opsional) ──► UMKM 
 UMKM ──► Promo (opsional, bisa global)
 ```
 
