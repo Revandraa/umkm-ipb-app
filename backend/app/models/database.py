@@ -91,6 +91,10 @@ class Order(Base):
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     transactions = relationship("Transaction", back_populates="order")
 
+    @property
+    def customer_name(self) -> Optional[str]:
+        return self.customer.full_name if self.customer else None
+
 
 class OrderItem(Base):
     __tablename__ = "order_items"

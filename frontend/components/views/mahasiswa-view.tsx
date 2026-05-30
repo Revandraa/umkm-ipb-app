@@ -88,7 +88,7 @@ interface MahasiswaViewProps {
 }
 
 export function MahasiswaView({ onLogout }: MahasiswaViewProps) {
-  const { approvedUMKMs, orders, customerName, uploadPaymentProof } = useData()
+  const { approvedUMKMs, orders, customerId, customerName, uploadPaymentProof } = useData()
   const [activeTab, setActiveTab] = useState<MahasiswaTab>("beranda")
   
   // Payment states from History
@@ -498,7 +498,7 @@ export function MahasiswaView({ onLogout }: MahasiswaViewProps) {
               </div>
 
               <div className="space-y-4">
-                {orders.filter(o => o.customerName === customerName || o.customerName === "Student IPB 1").length === 0 ? (
+                {orders.filter(o => o.customerId === customerId).length === 0 ? (
                   <Card className="p-12 text-center border-dashed border-2">
                     <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-xl font-semibold mb-2">Belum Ada Pesanan</h3>
@@ -506,7 +506,7 @@ export function MahasiswaView({ onLogout }: MahasiswaViewProps) {
                     <Button onClick={() => setViewState("browse")}>Mulai Memesan</Button>
                   </Card>
                 ) : (
-                  orders.filter(o => o.customerName === customerName || o.customerName === "Student IPB 1")
+                  orders.filter(o => o.customerId === customerId)
                     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                     .map(order => (
                     <Card 

@@ -46,13 +46,20 @@ interface OrderFormProps {
 }
 
 export function OrderForm({ item, onBack, onSuccess }: OrderFormProps) {
-  const { addOrder, uploadPaymentProof, approvedUMKMs, promos } = useData()
+  const { addOrder, uploadPaymentProof, approvedUMKMs, promos, customerName: ctxCustomerName } = useData()
   const [step, setStep] = useState<"form" | "payment">("form")
   const [activeOrder, setActiveOrder] = useState<Order | null>(null)
   
   const [quantity, setQuantity] = useState(1)
   const [pickupTime, setPickupTime] = useState("")
   const [customerName, setCustomerName] = useState("")
+
+  // Prefill customer name from context
+  useEffect(() => {
+    if (ctxCustomerName) {
+      setCustomerName(ctxCustomerName)
+    }
+  }, [ctxCustomerName])
   const [notes, setNotes] = useState("")
   const [promoCodeInput, setPromoCodeInput] = useState("")
   const [appliedPromo, setAppliedPromo] = useState<Promo | null>(null)

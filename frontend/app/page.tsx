@@ -1,7 +1,7 @@
 "use client"
 
 import { RoleProvider, useRole } from "@/lib/role-context"
-import { DataProvider } from "@/lib/data-context"
+import { DataProvider, useData } from "@/lib/data-context"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { MahasiswaView } from "@/components/views/mahasiswa-view"
@@ -13,6 +13,7 @@ import { useState, useEffect } from "react"
 
 function MainContent() {
   const { role, setRole } = useRole()
+  const { syncUser } = useData()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState<any>(null)
 
@@ -30,8 +31,9 @@ function MainContent() {
       if (userData.role === "customer") mappedRole = "mahasiswa"
       if (userData.role === "umkm_owner") mappedRole = "umkm"
       setRole(mappedRole)
+      syncUser()
     }
-  }, [])
+  }, [setRole, syncUser])
 
   const handleLogin = (userData: any) => {
     setUser(userData)
@@ -43,6 +45,7 @@ function MainContent() {
     if (userData.role === "umkm_owner") mappedRole = "umkm"
     
     setRole(mappedRole)
+    syncUser()
   }
 
   const handleLogout = () => {
@@ -50,6 +53,7 @@ function MainContent() {
     localStorage.removeItem("user")
     setIsAuthenticated(false)
     setUser(null)
+    syncUser()
   }
 
   return (

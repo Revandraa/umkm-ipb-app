@@ -171,6 +171,7 @@ class OrderResponse(OrderBase):
     id: str
     order_number: str
     customer_id: str
+    customer_name: Optional[str] = None
     status: OrderStatus
     total_price: Decimal
     items: List[OrderItemResponse] = []

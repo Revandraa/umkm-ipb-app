@@ -1,10 +1,11 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { mockUMKMs, pendingUMKMs, type UMKM, type MenuItem } from "./mock-data"
 
 export interface Order {
   id: string
+  customerId: string
   menuItem: MenuItem & { vendorName: string; vendorId: string; vendorLocation?: string }
   quantity: number
   pickupTime: string
@@ -57,13 +58,14 @@ interface DataContextType {
   updateMenuItem: (umkmId: string, menuItemId: string, updates: Partial<MenuItem>) => void
   deleteMenuItem: (umkmId: string, menuItemId: string) => void
   addMenuItem: (umkmId: string, menuItem: Omit<MenuItem, "id">) => void
-  addOrder: (order: Omit<Order, "id" | "createdAt" | "status">) => Promise<Order>
+  addOrder: (order: Omit<Order, "id" | "createdAt" | "status" | "customerId">) => Promise<Order>
   uploadPaymentProof: (orderId: string, file: File) => Promise<boolean>
   updateOrderStatus: (orderId: string, status: Order["status"]) => void
   updateMenuStock: (vendorId: string, menuItemId: string, quantity: number) => void
   addPromo: (promo: Omit<Promo, "id" | "created_at" | "updated_at">) => Promise<Promo>
   updatePromo: (promoId: string, updates: Partial<Omit<Promo, "id">>) => Promise<Promo>
   deletePromo: (promoId: string) => Promise<boolean>
+  syncUser: () => void
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
@@ -233,6 +235,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
               return {
                 id: o.id,
+                customerId: o.customer_id,
                 menuItem: matchedMenuItem ? {
                   ...(matchedMenuItem as MenuItem),
                   vendorName,
@@ -246,7 +249,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 totalPrice: parseFloat(o.total_price),
                 status: o.status,
                 createdAt: o.created_at,
-                customerName: currentCustomerId === o.customer_id ? (currentCustomerId ? "Student IPB 1" : "Customer") : "Customer",
+                customerName: o.customer_name || "Customer",
                 paymentProof: o.payment_proof || undefined,
                 notes: o.notes || undefined,
               };
@@ -388,11 +391,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     )
   }
 
-  const addOrder = async (orderData: Omit<Order, "id" | "createdAt" | "status">): Promise<Order> => {
+  const addOrder = async (orderData: Omit<Order, "id" | "createdAt" | "status" | "customerId">): Promise<Order> => {
     const tempId = `ORD-TEMP-${Date.now()}`;
     const newOrder: Order = {
       ...orderData,
       id: tempId,
+      customerId: customerId || "default",
       status: "pending",
       createdAt: new Date().toISOString(),
       customerName: customerName || orderData.customerName,
@@ -588,6 +592,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
+  const syncUser = useCallback(() => {
+    const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      setCustomerId(userData.id || "");
+      setCustomerName(userData.full_name || "");
+      setCustomerEmail(userData.email || "");
+      setCustomerPhone(userData.phone || "");
+      setCustomerCreatedAt(userData.created_at || "");
+    } else {
+      setCustomerId("");
+      setCustomerName("");
+      setCustomerEmail("");
+      setCustomerPhone("");
+      setCustomerCreatedAt("");
+    }
+  }, []);
+
   return (
     <DataContext.Provider value={{ 
       approvedUMKMs, 
@@ -617,7 +639,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       updateMenuStock,
       addPromo,
       updatePromo,
-      deletePromo
+      deletePromo,
+      syncUser
     }}>
       {children}
     </DataContext.Provider>
