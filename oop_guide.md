@@ -1,8 +1,5 @@
 # Panduan Lengkap Object-Oriented Programming (OOP)
 ## Implementasi Dasar, Inheritance, dan Composition Berdasarkan Codebase Project
-
-Panduan ini tidak menggunakan kode *dummy* (seperti mobil atau hewan), melainkan menggunakan **arsitektur kode nyata** yang diambil langsung dari codebase project **UMKM IPB Food Ordering Platform** Anda.
-
 ---
 
 ## 1. Implementasi OOP (Object-Oriented Programming)
