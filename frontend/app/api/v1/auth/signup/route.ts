@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getUsers, saveUsers } from "@/lib/local-db";
 
 export async function POST(request: Request) {
   try {
@@ -13,33 +12,34 @@ export async function POST(request: Request) {
       );
     }
     
-    const users = getUsers();
-    if (users.find((u: any) => u.email === body.email)) {
+    // Call FastAPI backend
+    const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
+    const response = await fetch(`${backendUrl}/api/v1/auth/signup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: body.email,
+        password: body.password,
+        full_name: body.full_name,
+        role: body.role || "customer",
+        phone: body.phone || null,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
       return NextResponse.json(
-        { detail: "Email sudah terdaftar" },
-        { status: 400 }
+        { detail: errorData.detail || "Registrasi gagal" },
+        { status: response.status }
       );
     }
 
-    const newUser = {
-      id: Date.now().toString(),
-      email: body.email,
-      password: body.password,
-      full_name: body.full_name,
-      role: body.role || "customer",
-    };
-
-    users.push(newUser);
-    saveUsers(users);
-
+    const data = await response.json();
+    // Return format yang kompatibel dengan respons backend langsung (data.id)
+    // dan juga mendukung format mock sebelumnya (data.user.id) untuk keandalan maksimal.
     return NextResponse.json({
-      message: "User created successfully",
-      user: {
-        id: newUser.id,
-        email: newUser.email,
-        full_name: newUser.full_name,
-        role: newUser.role,
-      }
+      ...data,
+      user: data
     }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
@@ -48,3 +48,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

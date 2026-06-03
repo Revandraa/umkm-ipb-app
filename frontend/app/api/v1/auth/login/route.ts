@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getUsers } from "@/lib/local-db";
 
 export async function POST(request: Request) {
   try {
@@ -13,26 +12,27 @@ export async function POST(request: Request) {
       );
     }
     
-    const users = getUsers();
-    const user = users.find((u: any) => u.email === body.email && u.password === body.password);
+    // Call FastAPI backend
+    const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
+    const response = await fetch(`${backendUrl}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: body.email,
+        password: body.password,
+      }),
+    });
 
-    if (!user) {
+    if (!response.ok) {
+      const errorData = await response.json();
       return NextResponse.json(
-        { detail: "Email atau password salah" },
-        { status: 401 }
+        { detail: errorData.detail || "Email atau password salah" },
+        { status: response.status }
       );
     }
 
-    return NextResponse.json({
-      access_token: "mock-jwt-token-" + user.id,
-      token_type: "bearer",
-      user: {
-        id: user.id,
-        email: user.email,
-        full_name: user.full_name,
-        role: user.role,
-      }
-    });
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error) {
     return NextResponse.json(
       { detail: "Internal Server Error" },
@@ -40,3 +40,4 @@ export async function POST(request: Request) {
     );
   }
 }
+
