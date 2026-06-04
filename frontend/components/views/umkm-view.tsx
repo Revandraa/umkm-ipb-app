@@ -259,8 +259,10 @@ export function UMKMView() {
   const getImageUrl = (path: string | undefined) => {
     if (!path) return ""
     if (path.startsWith("data:") || path.startsWith("http://") || path.startsWith("https://")) return path
-    const backendUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1").replace("/api/v1", "")
-    return `${backendUrl}${path}`
+    let rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
+    rawUrl = rawUrl.replace(/\/api\/v1\/?$/, "")
+    rawUrl = rawUrl.replace(/\/+$/, "")
+    return `${rawUrl}${path}`
   }
 
   const handleAcceptOrder = (order: Order) => {

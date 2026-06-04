@@ -123,7 +123,12 @@ export function MahasiswaAccountView({ onLogout }: MahasiswaAccountViewProps) {
     }
     setIsSaving(true)
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
+      let rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
+      rawUrl = rawUrl.replace(/\/+$/, "")
+      if (!rawUrl.endsWith("/api/v1")) {
+        rawUrl = `${rawUrl}/api/v1`
+      }
+      const backendUrl = rawUrl
       const res = await fetch(`${backendUrl}/users/${customerId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },

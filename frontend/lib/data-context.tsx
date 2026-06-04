@@ -3,6 +3,15 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import { mockUMKMs, pendingUMKMs, type UMKM, type MenuItem } from "./mock-data"
 
+const getBackendUrl = (): string => {
+  let rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+  rawUrl = rawUrl.replace(/\/+$/, ""); // remove trailing slashes
+  if (!rawUrl.endsWith("/api/v1")) {
+    rawUrl = `${rawUrl}/api/v1`;
+  }
+  return rawUrl;
+};
+
 export interface Order {
   id: string
   customerId: string
@@ -115,7 +124,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     const fetchData = async () => {
       try {
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+        const backendUrl = getBackendUrl();
         
         // Fetch Approved
         const approvedRes = await fetch(`${backendUrl}/umkm?limit=50`, { signal: controller.signal });
@@ -427,7 +436,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateMenuStock(orderData.menuItem.vendorId, orderData.menuItem.id, orderData.quantity)
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+      const backendUrl = getBackendUrl();
       const res = await fetch(`${backendUrl}/orders?customer_id=${customerId || "default"}`, {
         method: "POST",
         headers: {
@@ -468,7 +477,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     )
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+      const backendUrl = getBackendUrl();
       const formData = new FormData();
       formData.append("file", file);
 
@@ -527,14 +536,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     )
 
     // Send update to backend
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+    const backendUrl = getBackendUrl();
     fetch(`${backendUrl}/orders/${orderId}/status?status=${status}`, {
       method: "PATCH",
     }).catch(err => console.error("Failed to update order status:", err));
   }
 
   const addPromo = async (promoData: Omit<Promo, "id" | "created_at" | "updated_at">): Promise<Promo> => {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+    const backendUrl = getBackendUrl();
     const res = await fetch(`${backendUrl}/promos`, {
       method: "POST",
       headers: {
@@ -557,7 +566,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   const updatePromo = async (promoId: string, updates: Partial<Omit<Promo, "id">>): Promise<Promo> => {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+    const backendUrl = getBackendUrl();
     const formattedUpdates = { ...updates };
     if (updates.discount_value !== undefined) formattedUpdates.discount_value = Number(updates.discount_value);
     if (updates.min_order !== undefined) formattedUpdates.min_order = Number(updates.min_order);
@@ -580,7 +589,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   const deletePromo = async (promoId: string): Promise<boolean> => {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+    const backendUrl = getBackendUrl();
     const res = await fetch(`${backendUrl}/promos/${promoId}`, {
       method: "DELETE",
     });

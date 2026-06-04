@@ -678,10 +678,13 @@ export function MahasiswaView({ onLogout }: MahasiswaViewProps) {
                   <div className="relative rounded-xl border overflow-hidden aspect-video bg-muted/20">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={selectedHistoryOrder.paymentProof.startsWith("data:") 
-                        ? selectedHistoryOrder.paymentProof 
-                        : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1").replace("/api/v1", "") + selectedHistoryOrder.paymentProof
-                      }
+                      src={(() => {
+                        if (selectedHistoryOrder.paymentProof.startsWith("data:")) return selectedHistoryOrder.paymentProof
+                        let rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
+                        rawUrl = rawUrl.replace(/\/api\/v1\/?$/, "")
+                        rawUrl = rawUrl.replace(/\/+$/, "")
+                        return `${rawUrl}${selectedHistoryOrder.paymentProof}`
+                      })()}
                       alt="Bukti Transfer"
                       className="w-full h-full object-cover"
                     />

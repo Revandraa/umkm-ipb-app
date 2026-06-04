@@ -17,6 +17,9 @@ export async function POST(request: Request) {
     if (!backendUrl && process.env.NEXT_PUBLIC_API_URL) {
       backendUrl = process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/v1\/?$/, "");
     }
+    if (backendUrl) {
+      backendUrl = backendUrl.replace(/\/+$/, "");
+    }
     if (!backendUrl) {
       backendUrl = "http://localhost:8000";
     }
