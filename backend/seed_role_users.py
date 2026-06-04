@@ -20,6 +20,7 @@ def seed_role_users():
         pw_mahasiswa = pwd_context.hash("MahasiswaIPB123")
         pw_butini = pwd_context.hash("WarungBuTini123")
         pw_admin = pwd_context.hash("AdminIPB123")
+        pw_revandra = pwd_context.hash("Inirepan12345")
         
         print("Checking/Creating role users...")
         
@@ -39,7 +40,7 @@ def seed_role_users():
         else:
             mahasiswa.hashed_password = pw_mahasiswa
             print("Mahasiswa user password updated.")
-
+ 
         # 2. Bu Tini (UMKM Owner)
         butini = db.query(User).filter(User.email == "butini@apps.ipb.ac.id").first()
         if not butini:
@@ -56,7 +57,7 @@ def seed_role_users():
         else:
             butini.hashed_password = pw_butini
             print("Bu Tini user password updated.")
-
+ 
         # 3. Admin
         admin = db.query(User).filter(User.email == "admin@apps.ipb.ac.id").first()
         if not admin:
@@ -73,6 +74,23 @@ def seed_role_users():
         else:
             admin.hashed_password = pw_admin
             print("Admin user password updated.")
+            
+        # 4. Developer / Super Admin
+        revandra = db.query(User).filter(User.email == "revandraarevandra@apps.ipb.ac.id").first()
+        if not revandra:
+            revandra = User(
+                id="f289e437-81ed-4578-a177-427d96a7004e",
+                email="revandraarevandra@apps.ipb.ac.id",
+                full_name="Revandra Athaya Rizkika",
+                role="customer",
+                phone="08123456789",
+                hashed_password=pw_revandra
+            )
+            db.add(revandra)
+            print("Revandra developer user created.")
+        else:
+            revandra.hashed_password = pw_revandra
+            print("Revandra developer user password updated.")
             
         db.commit()
         
