@@ -13,7 +13,13 @@ export async function POST(request: Request) {
     }
     
     // Call FastAPI backend
-    const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
+    let backendUrl = process.env.BACKEND_URL;
+    if (!backendUrl && process.env.NEXT_PUBLIC_API_URL) {
+      backendUrl = process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/v1\/?$/, "");
+    }
+    if (!backendUrl) {
+      backendUrl = "http://localhost:8000";
+    }
     const response = await fetch(`${backendUrl}/api/v1/auth/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

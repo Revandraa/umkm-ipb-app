@@ -1,4 +1,4 @@
-# FRONTEND SUMMARY — UMKM IPB Food Ordering Platform
+﻿# FRONTEND SUMMARY — UMKM IPB Food Ordering Platform
 
 > Mata Kuliah: Analisis & Desain Sistem (ADS)  
 > Versi: 1.0  
@@ -51,9 +51,9 @@ State yang dikelola:
 | `pendingUMKMs` | `UMKM[]` | `GET /api/v1/umkm/admin/pending` |
 | `suspendedUMKMs` | `UMKM[]` | `GET /api/v1/umkm/admin/suspended` |
 | `orders` | `Order[]` | `GET /api/v1/orders/all` |
-| `promos`           | `Promo[]`     | `GET /api/v1/promos/all` (fallback ke `/promos`) |
-| `customerId`       | `string`      | `localStorage` (user login)        |
-| `activeUsersCount` | `number`      | `GET /api/v1/users/count`          |
+| `promos` | `Promo[]` | `GET /api/v1/promos/all` (fallback ke `/promos`) |
+| `customerId` | `string` | `localStorage` (user login) |
+| `activeUsersCount` | `number` | `GET /api/v1/users/count` |
 
 Actions/Methods yang diekspos:
 | Method | HTTP Call | Deskripsi |

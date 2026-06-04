@@ -26,9 +26,11 @@ app = FastAPI(
 )
 
 # Add CORS middleware
+# Using allow_origin_regex=".*" to dynamically allow all origins (localhost, Vercel, etc.)
+# without throwing the wildcard error when allow_credentials=True.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origin_regex=".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
