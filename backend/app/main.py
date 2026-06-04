@@ -61,7 +61,16 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check untuk monitoring"""
-    return {"status": "healthy"}
+    db_type = "unknown"
+    if settings.DATABASE_URL:
+        if "postgresql" in settings.DATABASE_URL:
+            db_type = "postgresql (Supabase)"
+        elif "sqlite" in settings.DATABASE_URL:
+            db_type = "sqlite (local/ephemeral)"
+    return {
+        "status": "healthy",
+        "database_type": db_type
+    }
 
 
 if __name__ == "__main__":
