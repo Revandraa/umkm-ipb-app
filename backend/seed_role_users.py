@@ -5,12 +5,12 @@ import uuid
 # Set python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # pyrefly: ignore[missing-import]
 from app.database import SessionLocal, init_db
 from app.models.database import User, UMKM, MenuItem
-from passlib.context import CryptContext
+from passlib.context import CryptContext  # pyrefly: ignore[missing-import]
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")  # pyrefly: ignore[missing-import]
 
 def seed_role_users():
     print("Connecting to database...")
