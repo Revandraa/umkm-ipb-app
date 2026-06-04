@@ -37,8 +37,11 @@ app.add_middleware(
 )
 
 # Ensure static folder exists (using absolute path)
-STATIC_DIR.mkdir(parents=True, exist_ok=True)
-PAYMENT_PROOF_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    STATIC_DIR.mkdir(parents=True, exist_ok=True)
+    PAYMENT_PROOF_DIR.mkdir(parents=True, exist_ok=True)
+except Exception as e:
+    print(f"Could not create static directories (read-only filesystem?): {e}")
 
 # Mount static folder (absolute path)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

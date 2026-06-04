@@ -38,3 +38,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 
 settings = Settings()
+
+# If running on Vercel and using default SQLite, redirect to /tmp to avoid read-only filesystem crash
+import os
+if os.environ.get("VERCEL") and settings.DATABASE_URL.startswith("sqlite:///"):
+    settings.DATABASE_URL = "sqlite:////tmp/umkm_ipb.db"
+
