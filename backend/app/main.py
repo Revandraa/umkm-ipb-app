@@ -15,15 +15,20 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BACKEND_DIR / "static"
 PAYMENT_PROOF_DIR = STATIC_DIR / "payment_proofs"
 
-# Initialize database
-init_db()
-
 # Create FastAPI app
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.PROJECT_VERSION,
     description="API untuk UMKM IPB Food Ordering Platform"
 )
+
+# Initialize database on startup
+@app.on_event("startup")
+def startup_event():
+    try:
+        init_db()
+    except Exception as e:
+        print(f"Error initializing database: {e}")
 
 # Add CORS middleware
 # Using allow_origin_regex=".*" to dynamically allow all origins (localhost, Vercel, etc.)
